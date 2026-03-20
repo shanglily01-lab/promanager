@@ -120,6 +120,11 @@ class Settings(BaseSettings):
         default="data/repo_mirrors",
         validation_alias=AliasChoices("REPO_MIRROR_ROOT", "repo_mirror_root"),
     )
+    # 生产环境浏览器访问域名与端口（逗号分隔）；不配则仅允许下方开发默认源。整站由本服务提供静态页时通常无需追加。
+    cors_origins: str = Field(
+        default="",
+        validation_alias=AliasChoices("CORS_ORIGINS", "cors_origins"),
+    )
 
     @staticmethod
     def _strip_outer_quotes(v: object) -> str:
@@ -213,6 +218,23 @@ class Settings(BaseSettings):
             vs = str(v).strip()
             if ks and vs:
                 out[ks] = vs
+        return out
+
+    @property
+    def cors_allow_origins(self) -> list[str]:
+        dev_defaults = [
+            "http://localhost:3008",
+            "http://127.0.0.1:3008",
+            "http://127.0.0.1:8000",
+            "http://localhost:8000",
+        ]
+        extra = [x.strip() for x in (self.cors_origins or "").split(",") if x.strip()]
+        seen: set[str] = set()
+        out: list[str] = []
+        for o in dev_defaults + extra:
+            if o not in seen:
+                seen.add(o)
+                out.append(o)
         return out
 
     def github_token_for_repo(self, repo_full_name: str) -> str:

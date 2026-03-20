@@ -14,3 +14,6 @@ frontend/dist/
 
 # 本地数据（SQLite）
 backend/data/
+
+# 本地部署打包输出
+deploy/out/

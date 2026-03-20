@@ -159,13 +159,19 @@ cd ../backend && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port
 - **升级代码后若「导入数据库」报错**：多为本地 SQLite 还缺新表（如 `tracked_repos`）。请**完全重启**后端（`uvicorn`）；启动时会自动 `create_all` 补表。仍失败时在 `backend` 目录执行：  
   `python -c "from app.database import init_db; init_db()"`。
 
+## 部署到服务器（含 AWS Linux）
+
+默认按 **裸机**（Python venv + Node 构建前端 + systemd）部署，见 **[deploy/README.md](deploy/README.md)**。Windows 可用 **`deploy/package-for-deploy.ps1`** 生成 `tar.gz` 上传服务器。
+
+生产环境若前端与 API **不同源**，在 `backend/.env` 配置 **`CORS_ORIGINS`**（见 `backend/.env.example`）。仓库里的 **Dockerfile / docker-compose** 仅为可选附录，可忽略。
+
 ## 目录结构
 
 ```
 promanager/
-  dev.cmd           # 一键前后端（Windows）
-  start-backend.cmd
-  start-frontend.cmd
+  deploy/           # 裸机部署：安装脚本、systemd、Nginx 示例、打包说明
+  Dockerfile        # 可选（附录）
+  docker-compose.yml
   backend/          # FastAPI + uvicorn
   frontend/         # Vite + React
   README.md
