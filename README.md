@@ -36,7 +36,7 @@
 在 **`backend`** 目录（已装好依赖、配好 `.env`）：
 
 ```text
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 3000
 ```
 
 后台定时同步依赖**单个** ASGI 进程；若使用 `uvicorn --workers 2+`，请设 `BACKGROUND_SYNC_ENABLED=false` 或改为单 worker，避免重复拉取。
@@ -44,13 +44,13 @@ python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 Windows 若没先 `activate` 虚拟环境，可写成：
 
 ```text
-.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 3000
 ```
 
 Linux / macOS 未激活 venv 时：
 
 ```text
-.venv/bin/python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+.venv/bin/python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 3000
 ```
 
 在 **`frontend`** 目录（首次先执行 `npm install`）：
@@ -59,7 +59,7 @@ Linux / macOS 未激活 venv 时：
 npm run dev
 ```
 
-开发时一般 **两个终端各跑上面一条**：API 与文档在 <http://127.0.0.1:8000>（含 `/docs`），页面在 <http://127.0.0.1:3008>（Vite 会把 `/api` 转到 8000）。
+开发时一般 **两个终端各跑上面一条**：API 与文档在 <http://127.0.0.1:3000>（含 `/docs`），页面在 <http://127.0.0.1:3008>（Vite 会把 `/api` 转到 3000）。
 
 **Windows**：可在两个终端分别启动后端与前端（后端可加 `--reload-dir app --reload-delay 1` 减轻热重载断连）。
 
@@ -70,15 +70,15 @@ npm run dev
 
 ### Vite 里 `http proxy error` / `read ECONNRESET` 是什么？
 
-- **`connect ECONNREFUSED 127.0.0.1:8000`**：8000 上 **没有进程在听**，即 **后端没启动或已退出**。请先起 `uvicorn`。
+- **`connect ECONNREFUSED 127.0.0.1:3000`**：3000 上 **没有进程在听**，即 **后端没启动或已退出**。请先起 `uvicorn`。
 - **`read ECONNRESET`**：连上后被对端掐断，多见于 **热重载重启** 或进程崩溃。
 
-表示浏览器经 Vite 访问 `/api` 时，连到 `127.0.0.1:8000` 出问题。常见原因：
+表示浏览器经 Vite 访问 `/api` 时，连到 `127.0.0.1:3000` 出问题。常见原因：
 
 1. **后端没在跑或刚退出**：先看跑 uvicorn 的那个终端是否还在、有没有报错；没起来时前端会一直代理失败（控制台 ECONNREFUSED；页面上会尽量返回 502 说明文字）。
 2. **`--reload` 热重载**：保存 `backend/app` 下文件会重启工作进程，**正在飞的请求**可能被掐断，就会偶发 ECONNRESET；**过一两秒刷新页面**通常就好。若短时间内多文件被保存，可能连续失败几次，属正常现象。
 3. **想更稳**：调前端时可先 **去掉 `--reload`** 跑后端；或只监视 `app` 并加大重载间隔，例如：  
-   `python -m uvicorn app.main:app --reload --reload-dir app --reload-delay 1 --host 127.0.0.1 --port 8000`
+   `python -m uvicorn app.main:app --reload --reload-dir app --reload-delay 1 --host 127.0.0.1 --port 3000`
 
 ---
 
@@ -99,10 +99,10 @@ copy .env.example .env
 
 ```text
 cd frontend && npm run build
-cd ../backend && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+cd ../backend && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 3000
 ```
 
-然后浏览器打开 <http://127.0.0.1:8000>（存在 `frontend/dist` 时后端会顺带提供静态页）。
+然后浏览器打开 <http://127.0.0.1:3000>（存在 `frontend/dist` 时后端会顺带提供静态页）。
 
 ### 配置说明（`backend/.env`）
 
@@ -135,14 +135,14 @@ cd ../backend && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port
 
 **识别规则（简）**：每条提交先按**邮箱**是否在档案中匹配；否则按 **GitHub 登录**；否则归入裸登录或 `email:地址` 桶。档案内同一人的多个邮箱、多个登录会汇总到同一 `contrib:ID`。
 
-开发模式下 Vite 把 `/api` 代理到 `http://127.0.0.1:8000`，所以要先起后端再起前端。
+开发模式下 Vite 把 `/api` 代理到 `http://127.0.0.1:3000`，所以要先起后端再起前端。
 
 ## 定时自动生成报告
 
 可用系统计划任务在每天固定时间调用：
 
-- `GET http://127.0.0.1:8000/api/reports/daily.md?date=...`  
-- `GET http://127.0.0.1:8000/api/reports/weekly.md?week_start=...`  
+- `GET http://127.0.0.1:3000/api/reports/daily.md?date=...`  
+- `GET http://127.0.0.1:3000/api/reports/weekly.md?week_start=...`  
 
 将输出写入邮件、飞书、企业微信等。
 

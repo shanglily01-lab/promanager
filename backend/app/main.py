@@ -678,7 +678,7 @@ def employee_habits(
     return compute_habits(rows)
 
 
-# 存在 frontend/dist 时，由本进程一并提供静态页（只跑后端即可用 http://127.0.0.1:8000/ 打开界面）
+# 存在 frontend/dist 时，由本进程一并提供静态页（只跑后端即可用 http://127.0.0.1:3000/ 打开界面）
 _frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if _frontend_dist.is_dir():
     from fastapi.staticfiles import StaticFiles

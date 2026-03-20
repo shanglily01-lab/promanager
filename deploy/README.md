@@ -4,7 +4,7 @@
 
 **前提**
 
-- 安全组放行 **8000**（若用 Nginx 则放行 **80/443**，后端只监听本机 8000 即可）。
+- 安全组放行 **3000**（若用 Nginx 则放行 **80/443**，后端只监听本机 3000 即可）。
 - 服务器上准备 `backend/.env`（复制 `backend/.env.example`），**勿**提交真实密钥到 Git。
 
 ---
@@ -57,7 +57,7 @@ cp backend/.env.example backend/.env
 nano backend/.env   # 或 vim
 ```
 
-若浏览器访问的**页面域名**与 **API 域名**不一致，增加例如：`CORS_ORIGINS=https://你的前端域名`；同源（只开 :8000 或 Nginx 同一域名反代）通常**不用**配。
+若浏览器访问的**页面域名**与 **API 域名**不一致，增加例如：`CORS_ORIGINS=https://你的前端域名`；同源（只开 :3000 或 Nginx 同一域名反代）通常**不用**配。
 
 ---
 
@@ -80,16 +80,16 @@ sudo systemctl status promanager
 
 ```bash
 cd /opt/promanager/backend
-.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
+.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 3000 --workers 1
 ```
 
-浏览器访问：`http://<公网IP>:8000`（存在 `frontend/dist` 时由后端一并提供静态页）。
+浏览器访问：`http://<公网IP>:3000`（存在 `frontend/dist` 时由后端一并提供静态页）。
 
 ---
 
 ## 6.（可选）Nginx 反代 HTTPS
 
-参考同目录 **`nginx-promanager.conf.example`**，修改 `server_name`、证书路径，并把 `proxy_pass` 指向 `127.0.0.1:8000`。
+参考同目录 **`nginx-promanager.conf.example`**，修改 `server_name`、证书路径，并把 `proxy_pass` 指向 `127.0.0.1:3000`。
 
 ---
 
