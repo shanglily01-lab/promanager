@@ -61,7 +61,7 @@ npm run dev
 
 开发时一般 **两个终端各跑上面一条**：API 与文档在 <http://127.0.0.1:8000>（含 `/docs`），页面在 <http://127.0.0.1:3008>（Vite 会把 `/api` 转到 8000）。
 
-**Windows**：也可双击仓库根目录 **`start-dev.bat`**，会依次打开两个窗口（后端带 `--reload-dir app --reload-delay 1`，减轻热重载断连）。
+**Windows**：可在两个终端分别启动后端与前端（后端可加 `--reload-dir app --reload-delay 1` 减轻热重载断连）。
 
 ### CodeCommit「仓库没拉回来」或同步报仓库不存在
 
@@ -70,7 +70,7 @@ npm run dev
 
 ### Vite 里 `http proxy error` / `read ECONNRESET` 是什么？
 
-- **`connect ECONNREFUSED 127.0.0.1:8000`**：8000 上 **没有进程在听**，即 **后端没启动或已退出**。请先起 `uvicorn`，或用 **`start-dev.bat`**。
+- **`connect ECONNREFUSED 127.0.0.1:8000`**：8000 上 **没有进程在听**，即 **后端没启动或已退出**。请先起 `uvicorn`。
 - **`read ECONNRESET`**：连上后被对端掐断，多见于 **热重载重启** 或进程崩溃。
 
 表示浏览器经 Vite 访问 `/api` 时，连到 `127.0.0.1:8000` 出问题。常见原因：
@@ -103,10 +103,6 @@ cd ../backend && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port
 ```
 
 然后浏览器打开 <http://127.0.0.1:8000>（存在 `frontend/dist` 时后端会顺带提供静态页）。
-
----
-
-**可选：Windows 批处理**（项目根目录）`dev.cmd` / `start-backend.cmd` / `start-frontend.cmd`，等价于上面命令。
 
 ### 配置说明（`backend/.env`）
 
@@ -163,15 +159,13 @@ cd ../backend && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port
 
 默认按 **裸机**（Python venv + Node 构建前端 + systemd）部署，见 **[deploy/README.md](deploy/README.md)**。Windows 可用 **`deploy/package-for-deploy.ps1`** 生成 `tar.gz` 上传服务器。
 
-生产环境若前端与 API **不同源**，在 `backend/.env` 配置 **`CORS_ORIGINS`**（见 `backend/.env.example`）。仓库里的 **Dockerfile / docker-compose** 仅为可选附录，可忽略。
+生产环境若前端与 API **不同源**，在 `backend/.env` 配置 **`CORS_ORIGINS`**（见 `backend/.env.example`）。
 
 ## 目录结构
 
 ```
 promanager/
   deploy/           # 裸机部署：安装脚本、systemd、Nginx 示例、打包说明
-  Dockerfile        # 可选（附录）
-  docker-compose.yml
   backend/          # FastAPI + uvicorn
   frontend/         # Vite + React
   README.md

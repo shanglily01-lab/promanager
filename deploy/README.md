@@ -116,9 +116,3 @@ cd /opt/promanager/backend
 升级版本：`git pull`（或上传新包解压覆盖）后执行 `./deploy/build-on-server.sh`，再 `sudo systemctl restart promanager`。
 
 更多 API 与配置见仓库根目录 **`README.md`**。
-
----
-
-## 附录：Docker（可选）
-
-仓库根目录仍提供 **`Dockerfile`** / **`docker-compose.yml`**，仅供需要容器化的环境使用；**不打算用 Docker 可忽略这两个文件**。
