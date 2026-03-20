@@ -9,7 +9,7 @@ Group=ec2-user
 WorkingDirectory=/opt/promanager/backend
 Environment=PYTHONUNBUFFERED=1
 # 按实际路径修改 /opt/promanager
-ExecStart=/opt/promanager/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 3000 --workers 1
+ExecStart=/opt/promanager/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 3020 --workers 1
 Restart=on-failure
 RestartSec=5
 

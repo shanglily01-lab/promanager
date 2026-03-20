@@ -11,7 +11,7 @@ function apiProxyError(
   const code = err.code ?? "";
   const hint =
     code === "ECONNREFUSED"
-      ? "请先启动后端：在 backend 目录运行 .venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 3000"
+      ? "请先启动后端：在 backend 目录运行 .venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 3020"
       : `代理错误 (${code}): ${err.message}\n若正在保存后端代码，多为热重载断连，稍后刷新即可。`;
   if ("writeHead" in res && typeof res.writeHead === "function" && !res.headersSent) {
     res.writeHead(502, { "Content-Type": "text/plain; charset=utf-8" });
@@ -20,7 +20,7 @@ function apiProxyError(
 }
 
 const apiProxy = {
-  target: "http://127.0.0.1:3000",
+  target: "http://127.0.0.1:3020",
   changeOrigin: true,
   timeout: 120_000,
   proxyTimeout: 120_000,

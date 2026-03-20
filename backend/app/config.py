@@ -225,8 +225,8 @@ class Settings(BaseSettings):
         dev_defaults = [
             "http://localhost:3008",
             "http://127.0.0.1:3008",
-            "http://127.0.0.1:3000",
-            "http://localhost:3000",
+            "http://127.0.0.1:3020",
+            "http://localhost:3020",
         ]
         extra = [x.strip() for x in (self.cors_origins or "").split(",") if x.strip()]
         seen: set[str] = set()

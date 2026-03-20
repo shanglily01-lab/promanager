@@ -28,4 +28,4 @@ python -m pip install -U pip
 pip install -r requirements.txt
 
 echo "==> 完成。请配置 backend/.env 后启动："
-echo "    cd $ROOT/backend && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 3000 --workers 1"
+echo "    cd $ROOT/backend && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 3020 --workers 1"
