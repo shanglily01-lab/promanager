@@ -9,11 +9,21 @@
 | 同步 | 调用 GitHub REST API 拉取 `owner/repo` 在指定天数内的 commits 并去重入库；**仓库列表可存数据库**（`/api/repos`），与 `.env` / `repos.txt` 合并去重 |
 | 仓库中心 | 对合并列表中的仓库在本机执行 `git clone` / `git fetch`（默认目录 `backend/data/repo_mirrors`，见 `REPO_MIRROR_ROOT`），检查是否都能拉回本地；前端 **仓库中心** 页或 `GET/POST /api/repo-mirrors*`。CodeCommit 依赖 **本 venv 内的 `awscli`**（已写入 `requirements.txt`）及 `.env` 中的 AWS 凭证，无需单独安装系统 AWS CLI。 |
 | 日报 | 某一 UTC 日历日内，每位成员是否有提交、提交条数与摘要 |
-| 周报 | 以周一为起点的一周（UTC），同上，并附每人习惯统计；**代码改动画像**（语言扩展名占比、diff 缩进启发式、是否常改测试路径、提交体量等）依赖同步时对 GitHub **单条 commit** 的额外拉取，见 `GITHUB_COMMIT_STYLE_*` |
+| 周报 | 以周一为起点的一周（UTC），同上，并附每人习惯统计；**提交说明标签**（`commit_message_tags`，Conventional/ Merge/ 中英文/ 多行等启发式）+ **代码改动画像**（`style_tags`，扩展名、diff 缩进等，依赖 `GITHUB_COMMIT_STYLE_*` 单条 commit 详情拉取） |
 | 成员查询 | 按报表主键查提交与习惯：`GitHub登录`、`email:邮箱`、`contrib:档案ID` |
 | 成员档案 | 为每人设置**昵称、备注**，并绑定多个**邮箱**与 **GitHub 登录**；报表中合并为同一 `contrib:编号` |
 
 > **说明**：GitHub 上「项目」若指 **Projects / Issues**，本版本以 **代码提交** 为核心数据源；后续可在此基础上接 Issues、Pull Requests 等 API。
+
+## 最近更新（对照界面看）
+
+| 项 | 去哪看 / 配置 |
+|----|----------------|
+| **多 GitHub Token** | `.env`：`GITHUB_TOKEN_REPO_MAP`（JSON）；同步时按仓库选 Token |
+| **仓库中心** | 顶栏 **仓库中心**：`git clone`/`fetch` 到 `REPO_MIRROR_ROOT`；CodeCommit 用 venv 内 `awscli`（`pip install -r requirements.txt`） |
+| **提交说明个人标签** | **周报**卡片、**成员提交与习惯**：紫色标签 = `commit_message_tags`；灰色系 = 代码画像 `style_tags` |
+| **GitHub API 报错提示** | 同步失败信息更易读（401/404/私有库/SSO 等） |
+| **Windows 特殊仓** | 含非法文件名的仓可自动 `--no-checkout` 仅拉对象；`git` 子进程禁用易坏的 `credential.helper` 链 |
 
 ## 环境要求
 
@@ -124,7 +134,7 @@ cd ../backend && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port
 - `GET /api/reports/weekly.md?week_start=...`  
 - `GET /api/employees` — 返回 `employee_keys` 与 `employee_key_options`（`{ key, label }`，`contrib:` 用成员昵称作 `label` 供下拉展示）  
 - `GET /api/employees/{key}/commits?from=&to=` — `key` 可为 `zhangsan`、`email:a@b.com`、`contrib:1`、`_unknown`  
-- `GET /api/employees/{key}/habits?from=&to=` — 含时间/说明习惯 + **style_tags**（文件扩展名、diff 缩进启发式、测试路径、提交体量等，依赖同步时 `GITHUB_COMMIT_STYLE_*` 写入的画像）  
+- `GET /api/employees/{key}/habits?from=&to=` — 含时间/说明习惯；**commit_message_tags**（由提交说明启发式：Conventional 占比与类型主导、Merge/Revert、中英文倾向、多行说明、修复/功能措辞等）；**style_tags**（文件扩展名、diff 缩进等，依赖 `GITHUB_COMMIT_STYLE_*` 画像）  
 - `GET|POST|PUT|DELETE /api/contributors` — 成员档案 CRUD（绑定邮箱 / GitHub 登录）  
 
 **识别规则（简）**：每条提交先按**邮箱**是否在档案中匹配；否则按 **GitHub 登录**；否则归入裸登录或 `email:地址` 桶。档案内同一人的多个邮箱、多个登录会汇总到同一 `contrib:ID`。

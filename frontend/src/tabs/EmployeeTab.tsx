@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CommitItem, HabitsSummary } from "../api";
 import { getJson } from "../api";
+import { DateInput } from "../components/DateInput";
 import { RepoSourceBadge } from "../components/RepoSourceBadge";
 
 type Props = { onError: (msg: string | null) => void };
@@ -12,7 +13,6 @@ export function EmployeeTab({ onError }: Props) {
   const [empCommits, setEmpCommits] = useState<CommitItem[] | null>(null);
   const [empHabits, setEmpHabits] = useState<HabitsSummary | null>(null);
   const [employeeKeyOptions, setEmployeeKeyOptions] = useState<{ key: string; label: string }[]>([]);
-  const [empKeySelectNonce, setEmpKeySelectNonce] = useState(0);
 
   useEffect(() => {
     getJson<{
@@ -60,6 +60,13 @@ export function EmployeeTab({ onError }: Props) {
     return Math.max(1, ...Object.values(empHabits.commits_by_hour_utc));
   }, [empHabits]);
 
+  /** 当前主键若与下拉选项中某项一致，则下拉显示该项；否则显示「按名称选择…」（手动输入任意主键时） */
+  const selectKeyValue = useMemo(() => {
+    const t = empLogin.trim();
+    if (!t) return "";
+    return employeeKeyOptions.some((o) => o.key === t) ? t : "";
+  }, [empLogin, employeeKeyOptions]);
+
   return (
     <section className="card tab-panel" aria-labelledby="employee-heading">
       <h2 id="employee-heading">单人：提交列表与习惯</h2>
@@ -72,15 +79,11 @@ export function EmployeeTab({ onError }: Props) {
           报表主键
           <div className="key-row">
             <select
-              key={empKeySelectNonce}
               aria-label="按成员名称选择"
-              defaultValue=""
+              value={selectKeyValue}
               onChange={(e) => {
                 const v = e.target.value;
-                if (v) {
-                  setEmpLogin(v);
-                  setEmpKeySelectNonce((n) => n + 1);
-                }
+                setEmpLogin(v);
               }}
               className="select-key"
             >
@@ -107,11 +110,11 @@ export function EmployeeTab({ onError }: Props) {
         </datalist>
         <label>
           从
-          <input type="date" value={empFrom} onChange={(e) => setEmpFrom(e.target.value)} />
+          <DateInput value={empFrom} onChange={setEmpFrom} aria-label="提交区间开始日期" />
         </label>
         <label>
           到
-          <input type="date" value={empTo} onChange={(e) => setEmpTo(e.target.value)} />
+          <DateInput value={empTo} onChange={setEmpTo} aria-label="提交区间结束日期" />
         </label>
         <button type="button" className="primary" onClick={loadEmployee}>
           查询

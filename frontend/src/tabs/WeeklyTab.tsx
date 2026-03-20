@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { WeeklyReport } from "../api";
 import { getJson } from "../api";
+import { DateInput } from "../components/DateInput";
 import { RepoSourceBadge } from "../components/RepoSourceBadge";
 import { mondayISO } from "../utils/date";
 
@@ -34,7 +35,7 @@ export function WeeklyTab({ onError }: Props) {
       <div className="row">
         <label>
           周起始（周一）
-          <input type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
+          <DateInput value={weekStart} onChange={setWeekStart} aria-label="周报周起始日（周一）" />
         </label>
         <button type="button" className="primary" onClick={loadWeekly}>
           生成
@@ -64,8 +65,17 @@ export function WeeklyTab({ onError }: Props) {
                     {(h.commits_with_style_sample ?? 0) > 0 ? ` · 画像样本 ${h.commits_with_style_sample} 条` : ""}
                   </div>
                 )}
+                {h && (h.commit_message_tags ?? []).length > 0 && (
+                  <ul className="style-tag-list style-tag-list--compact" title="来自提交说明">
+                    {(h.commit_message_tags ?? []).map((t) => (
+                      <li key={`m-${t}`} className="style-tag style-tag--msg">
+                        {t}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {h && (h.style_tags ?? []).length > 0 && (
-                  <ul className="style-tag-list style-tag-list--compact">
+                  <ul className="style-tag-list style-tag-list--compact" title="来自文件级画像">
                     {(h.style_tags ?? []).map((t) => (
                       <li key={t} className="style-tag">
                         {t}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { DailyReport } from "../api";
 import { getJson } from "../api";
+import { DateInput } from "../components/DateInput";
 import { RepoSourceBadge } from "../components/RepoSourceBadge";
 import { todayISO } from "../utils/date";
 
@@ -36,7 +37,7 @@ export function DailyTab({ onError }: Props) {
       <div className="row">
         <label>
           日期
-          <input type="date" value={dailyDate} onChange={(e) => setDailyDate(e.target.value)} />
+          <DateInput value={dailyDate} onChange={setDailyDate} aria-label="日报日期" />
         </label>
         <button type="button" className="primary" onClick={loadDaily}>
           生成

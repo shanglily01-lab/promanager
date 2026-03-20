@@ -814,6 +814,18 @@ button.linkish:disabled {
   color: var(--text);
 }
 
+.style-tag--msg {
+  background: color-mix(in srgb, #6b5b95 14%, var(--bg));
+  border-color: color-mix(in srgb, #6b5b95 40%, var(--border));
+}
+
+.habits-mini--sub {
+  margin-top: 0.5rem;
+  margin-bottom: 0.2rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
 .commit-list--top {
   margin-top: 1rem;
 }
@@ -834,4 +846,55 @@ button.linkish:disabled {
 .input-key {
   flex: 1 1 10rem;
   min-width: 8rem;
+}
+
+/* 日期：原生 date + 可见「日历」按钮，深色 color-scheme 弹层 */
+input[type="date"],
+input.input-date {
+  color-scheme: dark;
+}
+
+.date-input-wrap {
+  display: inline-flex;
+  align-items: stretch;
+  width: 100%;
+  max-width: 17rem;
+  margin-top: 0.05rem;
+}
+
+input.input-date {
+  flex: 1 1 auto;
+  min-width: 9.5rem;
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+.input-date::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+  filter: invert(0.88);
+}
+
+.date-input-calendar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 0 0.5rem;
+  margin-left: 0.35rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.date-input-calendar:hover:not(:disabled) {
+  border-color: var(--accent-dim);
+  color: var(--text);
+}
+
+.date-input-calendar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

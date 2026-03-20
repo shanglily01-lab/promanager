@@ -48,7 +48,7 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion }: Props) {
           repo_count: number;
           error_preview: string | null;
         }[]
-      >("/api/sync/logs?limit=25");
+      >("/api/sync/logs?limit=5");
       setSyncHistory(rows);
     } catch {
       setSyncHistory([]);
