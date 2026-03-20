@@ -86,6 +86,33 @@ class RepoBulkResult(BaseModel):
     errors: list[str]
 
 
+class RepoMirrorItemOut(BaseModel):
+    full_name: str
+    status: str
+    detail: str = ""
+    local_rel_path: str = ""
+    updated_at: datetime | None = None
+
+
+class RepoMirrorCenterResponse(BaseModel):
+    mirror_root: str
+    git_available: bool
+    aws_cli_available: bool
+    scan_in_progress: bool
+    items: list[RepoMirrorItemOut]
+
+
+class RepoMirrorScanRequest(BaseModel):
+    repos: list[str] = Field(
+        default_factory=list,
+        description="要检测的仓库列表；空则使用「数据库已启用 + .env / REPOS_FILE」合并列表",
+    )
+
+
+class RepoMirrorScanStarted(BaseModel):
+    started: bool = True
+
+
 class CommitItem(BaseModel):
     sha: str
     repo_full_name: str
@@ -104,6 +131,13 @@ class HabitsSummary(BaseModel):
     pct_messages_with_issue_ref: float
     most_active_hour_utc: int | None
     most_active_weekday: str | None
+    # 来自同步时拉取的 commit 文件级画像 + 提交说明格式启发式（非 AST/语义）
+    style_tags: list[str] = Field(default_factory=list)
+    style_language_mix: dict[str, int] = Field(default_factory=dict)
+    commits_with_style_sample: int = 0
+    pct_conventional_commits: float = 0.0
+    # 由提交说明文本启发式汇总（类型分布、Merge、中英文、多行等）
+    commit_message_tags: list[str] = Field(default_factory=list)
 
 
 class EmployeeSummary(BaseModel):

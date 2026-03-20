@@ -10,6 +10,11 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models import CommitRecord, Contributor
 from app.schemas import CommitItem, DailyReport, EmployeeSummary, HabitsSummary, WeeklyReport
+from app.services.commit_style_analyzer import (
+    conventional_commit_pct,
+    rollup_commit_message_tags,
+    rollup_style_from_commits,
+)
 from app.services.identity_service import (
     configured_member_key,
     load_alias_maps,
@@ -123,6 +128,11 @@ def compute_habits(commits: list[CommitRecord]) -> HabitsSummary:
             pct_messages_with_issue_ref=0.0,
             most_active_hour_utc=None,
             most_active_weekday=None,
+            style_tags=[],
+            style_language_mix={},
+            commits_with_style_sample=0,
+            pct_conventional_commits=0.0,
+            commit_message_tags=[],
         )
 
     by_hour: dict[str, int] = {str(h): 0 for h in range(24)}
@@ -147,6 +157,11 @@ def compute_habits(commits: list[CommitRecord]) -> HabitsSummary:
     else:
         mwd = WEEKDAY_CN[mw_idx]
 
+    msgs = [c.message or "" for c in commits]
+    pct_conv = conventional_commit_pct(msgs)
+    style_tags, style_mix, n_style = rollup_style_from_commits(commits)
+    msg_tags = rollup_commit_message_tags(commits)
+
     return HabitsSummary(
         total_commits=len(commits),
         commits_by_hour_utc=by_hour,
@@ -155,6 +170,11 @@ def compute_habits(commits: list[CommitRecord]) -> HabitsSummary:
         pct_messages_with_issue_ref=round(100.0 * with_issue / len(commits), 1),
         most_active_hour_utc=mh,
         most_active_weekday=mwd,
+        style_tags=style_tags,
+        style_language_mix=style_mix,
+        commits_with_style_sample=n_style,
+        pct_conventional_commits=pct_conv,
+        commit_message_tags=msg_tags,
     )
 
 
@@ -260,8 +280,17 @@ def markdown_weekly(report: WeeklyReport) -> str:
         if h and h.total_commits > 0:
             lines.append(
                 f"- 习惯: 主要活跃时段(UTC) {h.most_active_hour_utc} 点, 最常提交日 {h.most_active_weekday}, "
-                f"平均说明长度 {h.avg_message_length}, 含 # 引用 {h.pct_messages_with_issue_ref}%"
+                f"平均说明长度 {h.avg_message_length}, 含 # 引用 {h.pct_messages_with_issue_ref}%, "
+                f"Conventional Commits 占比 {h.pct_conventional_commits}%"
             )
+            if h.commit_message_tags:
+                lines.append(f"- 提交说明标签: {'；'.join(h.commit_message_tags)}")
+            if h.style_tags:
+                lines.append(f"- 代码改动画像标签: {'；'.join(h.style_tags)}")
+            if h.commits_with_style_sample > 0 and h.style_language_mix:
+                top3 = sorted(h.style_language_mix.items(), key=lambda x: -x[1])[:3]
+                mix_s = ", ".join(f"{ext}×{n}" for ext, n in top3)
+                lines.append(f"- 文件扩展名加权(前项): {mix_s}（基于 {h.commits_with_style_sample} 条含画像的提交）")
         cs = report.by_employee_commits.get(e.login, [])
         for c in cs[:15]:
             lines.append(f"  - `{c.repo_full_name}` {c.committed_at.date()} {c.message.splitlines()[0][:100]}")

@@ -63,6 +63,47 @@ def _github_rate_limit_user_message(response: httpx.Response, has_token: bool) -
     return " ".join(parts)
 
 
+def _github_api_message_snippet(response: httpx.Response) -> str:
+    try:
+        data = response.json()
+    except Exception:  # noqa: BLE001
+        return (response.text or "")[:200].strip()
+    if isinstance(data, dict):
+        msg = data.get("message")
+        if isinstance(msg, str) and msg.strip():
+            return msg.strip()[:300]
+    return (response.text or "")[:200].strip()
+
+
+def _github_commits_http_error(repo_full_name: str, exc: httpx.HTTPStatusError, has_token: bool) -> str:
+    r = exc.response
+    code = r.status_code
+    hint = _github_api_message_snippet(r)
+    repo = repo_full_name.strip()
+    base = f"GitHub 拉取提交失败（{repo}，HTTP {code}）"
+    if hint:
+        base += f"：{hint}"
+    if code == 401:
+        return (
+            f"{base}。请检查 GITHUB_TOKEN 或 GITHUB_TOKEN_REPO_MAP 中对应 Token 是否完整、未过期；"
+            "`.env` 里勿多包一层引号导致整段被当成 Token。"
+        )
+    if code == 404:
+        tail = (
+            "常见原因：仓库名写错；私有库但当前 Token 无权访问（GitHub 对无权限私有库也常返回 404）；"
+            "细粒度 PAT 创建时须在「Repository access」里勾选该仓库，并授予 Contents、Metadata 的只读权限；"
+            "组织仓库若启用 SAML SSO，需在 Token 页对该组织点 Authorize。"
+        )
+        if not has_token:
+            tail = "未携带 Token 时无法访问私有库；" + tail
+        return f"{base}。{tail}"
+    if code == 403:
+        return (
+            f"{base}。若并非速率限制：可能是 Token 权限不足、组织策略限制，或需在 GitHub 上对组织完成 SSO 授权。"
+        )
+    return f"{base}。请核对网络与 GitHub 服务状态。"
+
+
 class GitHubClient:
     def __init__(self, token: str | None = None):
         self.token = (token or settings.github_token or "").strip()
@@ -110,13 +151,19 @@ class GitHubClient:
         url = f"{self.base}/repos/{repo_full_name}/commits"
         commits: list[dict[str, Any]] = []
 
+        has_tok = bool(self.token)
         async with httpx.AsyncClient(headers=self._headers(), timeout=60.0) as client:
             while url:
-                r = await self._get_page(
-                    client,
-                    url,
-                    params if url.startswith(self.base) else None,
-                )
+                try:
+                    r = await self._get_page(
+                        client,
+                        url,
+                        params if url.startswith(self.base) else None,
+                    )
+                except httpx.HTTPStatusError as e:
+                    raise RuntimeError(
+                        _github_commits_http_error(repo_full_name, e, has_tok)
+                    ) from e
                 batch = r.json()
                 if isinstance(batch, list):
                     commits.extend(batch)
@@ -128,6 +175,17 @@ class GitHubClient:
                 params = {}
 
         return commits
+
+    async def fetch_commit_detail(self, repo_full_name: str, sha: str) -> dict[str, Any] | None:
+        """GET /repos/{owner}/{repo}/commits/{sha}，含 files/stats/patch；失败时返回 None（不中断同步）。"""
+        url = f"{self.base}/repos/{repo_full_name}/commits/{sha}"
+        async with httpx.AsyncClient(headers=self._headers(), timeout=90.0) as client:
+            try:
+                r = await self._get_page(client, url, None)
+            except (httpx.HTTPStatusError, RuntimeError):
+                return None
+        data = r.json()
+        return data if isinstance(data, dict) else None
 
     @staticmethod
     def normalize_commit(repo_full_name: str, raw: dict[str, Any]) -> dict[str, Any] | None:

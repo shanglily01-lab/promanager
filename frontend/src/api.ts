@@ -145,6 +145,13 @@ export type HabitsSummary = {
   pct_messages_with_issue_ref: number;
   most_active_hour_utc: number | null;
   most_active_weekday: string | null;
+  /** 由 commit 文件级画像 + 提交说明格式启发式生成 */
+  style_tags: string[];
+  style_language_mix: Record<string, number>;
+  commits_with_style_sample: number;
+  pct_conventional_commits: number;
+  /** 仅根据提交说明汇总的标签 */
+  commit_message_tags: string[];
 };
 
 export type DailyReport = {

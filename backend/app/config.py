@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from urllib.parse import quote
 
@@ -40,6 +41,12 @@ class Settings(BaseSettings):
     )
 
     github_token: str = ""
+    # 按仓库使用不同 GitHub Token（JSON 一行）。键：小写 owner/repo；可用 "owner/*" 匹配整个用户/组织下未单独指定的仓库。
+    # 示例：{"myorg/secret-a":"ghp_aaa","other/repo":"github_pat_bbb","myorg/*":"ghp_org_default"}
+    github_token_repo_map_json: str = Field(
+        default="",
+        validation_alias=AliasChoices("GITHUB_TOKEN_REPO_MAP", "github_token_repo_map_json"),
+    )
     # owner/repo，可用逗号、换行、分号分隔（适合 .env 里写多行时用引号包裹）
     default_repos: str = ""
     # 可选：仓库列表文件路径（相对 backend 目录或绝对路径），每行一个 owner/repo，# 为注释
@@ -91,6 +98,28 @@ class Settings(BaseSettings):
             "background_sync_initial_delay_seconds",
         ),
     )
+    # 同步时对每条「新」GitHub 提交再请求一次详情 API，用于文件类型/缩进/体量等画像（会增加请求量）
+    github_commit_style_fetch_enabled: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "GITHUB_COMMIT_STYLE_FETCH",
+            "github_commit_style_fetch_enabled",
+        ),
+    )
+    github_commit_style_max_per_sync: int = Field(
+        default=400,
+        ge=0,
+        le=8000,
+        validation_alias=AliasChoices(
+            "GITHUB_COMMIT_STYLE_MAX_PER_SYNC",
+            "github_commit_style_max_per_sync",
+        ),
+    )
+    # 仓库中心：克隆/拉取合并列表中的仓库到本机目录（相对 backend 根目录或绝对路径）
+    repo_mirror_root: str = Field(
+        default="data/repo_mirrors",
+        validation_alias=AliasChoices("REPO_MIRROR_ROOT", "repo_mirror_root"),
+    )
 
     @staticmethod
     def _strip_outer_quotes(v: object) -> str:
@@ -101,7 +130,13 @@ class Settings(BaseSettings):
             return s[1:-1]
         return s
 
-    @field_validator("db_user", "db_password", mode="before")
+    @field_validator(
+        "db_user",
+        "db_password",
+        "github_token",
+        "github_token_repo_map_json",
+        mode="before",
+    )
     @classmethod
     def _env_strip_quotes(cls, v: object) -> str:
         return cls._strip_outer_quotes(v)
@@ -117,6 +152,14 @@ class Settings(BaseSettings):
                 f"{int(self.db_port)}/{self.db_name.strip()}?charset=utf8mb4"
             )
         return self.database_url
+
+    @property
+    def repo_mirror_root_path(self) -> Path:
+        p = (self.repo_mirror_root or "").strip() or "data/repo_mirrors"
+        path = Path(p)
+        if not path.is_absolute():
+            path = BACKEND_ROOT / path
+        return path.resolve()
 
     @property
     def repos_file_path(self) -> Path | None:
@@ -152,6 +195,38 @@ class Settings(BaseSettings):
     @property
     def member_logins(self) -> list[str]:
         return [m.strip().lower() for m in self.team_members.split(",") if m.strip()]
+
+    @property
+    def github_token_repo_map(self) -> dict[str, str]:
+        raw = (self.github_token_repo_map_json or "").strip()
+        if not raw:
+            return {}
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        out: dict[str, str] = {}
+        for k, v in data.items():
+            ks = str(k).strip().lower()
+            vs = str(v).strip()
+            if ks and vs:
+                out[ks] = vs
+        return out
+
+    def github_token_for_repo(self, repo_full_name: str) -> str:
+        """优先精确匹配 owner/repo，其次 owner/*，最后 GITHUB_TOKEN。"""
+        fn = repo_full_name.strip().lower()
+        m = self.github_token_repo_map
+        if fn in m:
+            return m[fn]
+        if "/" in fn:
+            owner, _rest = fn.split("/", 1)
+            wild = f"{owner}/*"
+            if wild in m:
+                return m[wild]
+        return (self.github_token or "").strip()
 
 
 settings = Settings()

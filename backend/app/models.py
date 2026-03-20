@@ -73,6 +73,25 @@ class CommitRecord(Base):
     committed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     message: Mapped[str] = mapped_column(Text, default="")
     html_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # GitHub 单条 commit 解析后的轻量画像（扩展名分布、缩进启发式、是否触达测试路径等），JSON 文本
+    commit_style_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class RepoMirrorState(Base):
+    """仓库中心：各仓库本地镜像的最近一次 clone/fetch 结果。"""
+
+    __tablename__ = "repo_mirror_states"
+    __table_args__ = _MYSQL_UTF8MB4
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    full_name: Mapped[str] = mapped_column(String(400), unique=True, index=True)
+    status: Mapped[str] = mapped_column(String(32), default="pending")
+    detail: Mapped[str] = mapped_column(Text, default="")
+    local_rel_path: Mapped[str] = mapped_column(String(512), default="")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
 
 
 class SyncLog(Base):

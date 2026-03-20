@@ -14,8 +14,10 @@ from app.codecommit_client import (
     is_codecommit_repo,
     parse_codecommit_ref,
 )
+from app.config import settings
 from app.github_client import GitHubClient
 from app.models import CommitRecord, SyncLog
+from app.services.commit_style_analyzer import analyze_github_commit_detail
 from app.services.identity_service import provision_contributors_from_normalized
 
 ProgressEmitter = Callable[[dict[str, Any]], Awaitable[None]]
@@ -64,71 +66,67 @@ async def run_sync(
 
     normalized: list[dict[str, Any]] = []
     repo_errors: list[str] = []
-    fetch_err: str | None = None
-    try:
-        gh = GitHubClient()
-    except Exception as e:  # noqa: BLE001
-        fetch_err = str(e)
-    else:
-        n_repos = len(repos)
-        for idx, repo in enumerate(repos):
-            r = repo.strip()
-            kind = "codecommit" if is_codecommit_repo(r) else "github"
-            await _emit(
-                on_progress,
-                "repo_fetch_start",
-                index=idx + 1,
-                total=n_repos,
-                repo=r,
-                kind=kind,
-            )
-            try:
-                if is_codecommit_repo(r):
-                    parsed = parse_codecommit_ref(r)
-                    if not parsed:
-                        raise ValueError(f"无效的 CodeCommit 仓库格式: {r}")
-                    region, name, br = parsed
-                    chunk = await asyncio.to_thread(
-                        fetch_codecommit_commits_normalized,
-                        region,
-                        name,
-                        br,
-                        since,
-                    )
-                    normalized.extend(chunk)
-                    await _emit(
-                        on_progress,
-                        "repo_fetch_done",
-                        repo=r,
-                        commits=len(chunk),
-                        kind=kind,
-                    )
-                else:
-                    raw_list = await gh.fetch_commits_for_repo(r, since=since)
-                    added = 0
-                    for raw in raw_list:
-                        n = gh.normalize_commit(r, raw)
-                        if n:
-                            normalized.append(n)
-                            added += 1
-                    await _emit(
-                        on_progress,
-                        "repo_fetch_done",
-                        repo=r,
-                        commits=added,
-                        raw_commits=len(raw_list),
-                        kind=kind,
-                    )
-            except Exception as ex:  # noqa: BLE001
-                one = f"{r}: {ex}"
-                repo_errors.append(one)
+
+    n_repos = len(repos)
+    for idx, repo in enumerate(repos):
+        r = repo.strip()
+        kind = "codecommit" if is_codecommit_repo(r) else "github"
+        await _emit(
+            on_progress,
+            "repo_fetch_start",
+            index=idx + 1,
+            total=n_repos,
+            repo=r,
+            kind=kind,
+        )
+        try:
+            if is_codecommit_repo(r):
+                parsed = parse_codecommit_ref(r)
+                if not parsed:
+                    raise ValueError(f"无效的 CodeCommit 仓库格式: {r}")
+                region, name, br = parsed
+                chunk = await asyncio.to_thread(
+                    fetch_codecommit_commits_normalized,
+                    region,
+                    name,
+                    br,
+                    since,
+                )
+                normalized.extend(chunk)
                 await _emit(
                     on_progress,
-                    "repo_fetch_error",
+                    "repo_fetch_done",
                     repo=r,
-                    message=str(ex)[:800],
+                    commits=len(chunk),
                     kind=kind,
                 )
+            else:
+                gh = GitHubClient(token=settings.github_token_for_repo(r))
+                raw_list = await gh.fetch_commits_for_repo(r, since=since)
+                added = 0
+                for raw in raw_list:
+                    n = GitHubClient.normalize_commit(r, raw)
+                    if n:
+                        normalized.append(n)
+                        added += 1
+                await _emit(
+                    on_progress,
+                    "repo_fetch_done",
+                    repo=r,
+                    commits=added,
+                    raw_commits=len(raw_list),
+                    kind=kind,
+                )
+        except Exception as ex:  # noqa: BLE001
+            one = f"{r}: {ex}"
+            repo_errors.append(one)
+            await _emit(
+                on_progress,
+                "repo_fetch_error",
+                repo=r,
+                message=str(ex)[:800],
+                kind=kind,
+            )
 
     log = SyncLog(
         started_at=now,
@@ -138,24 +136,6 @@ async def run_sync(
     db.add(log)
     db.commit()
     db.refresh(log)
-
-    if fetch_err:
-        log.finished_at = datetime.now(timezone.utc)
-        log.status = "error"
-        log.error = fetch_err[:8000]
-        db.add(log)
-        db.commit()
-        await _emit(
-            on_progress,
-            "complete",
-            ok=False,
-            sync_id=log.id,
-            commits_fetched=0,
-            contributors_created=0,
-            sync_status="error",
-            message=fetch_err,
-        )
-        return log.id, 0, fetch_err, 0, None
 
     # 全部仓库都拉取失败且没有任何提交缓冲 → 记为 error；否则继续写入已成功拉取的部分
     if not normalized and repo_errors:
@@ -193,6 +173,8 @@ async def run_sync(
     err: str | None = None
     n_norm = len(normalized)
     write_every = 400
+    style_fetch_budget = settings.github_commit_style_max_per_sync
+    style_fetch_count = 0
     try:
         await _emit(on_progress, "write_start", total_to_scan=n_norm)
         for i, norm in enumerate(normalized):
@@ -208,6 +190,22 @@ async def run_sync(
             )
             if exists:
                 continue
+            style_blob: str | None = None
+            if (
+                settings.github_commit_style_fetch_enabled
+                and style_fetch_budget > 0
+                and not is_codecommit_repo(norm["repo_full_name"])
+            ):
+                style_fetch_budget -= 1
+                style_fetch_count += 1
+                gh_style = GitHubClient(token=settings.github_token_for_repo(norm["repo_full_name"]))
+                detail = await gh_style.fetch_commit_detail(norm["repo_full_name"], norm["sha"])
+                if detail:
+                    snap = analyze_github_commit_detail(detail)
+                    if snap:
+                        style_blob = json.dumps(snap, ensure_ascii=False)
+                if style_fetch_count % 20 == 0:
+                    await asyncio.sleep(0.06)
             db.add(
                 CommitRecord(
                     sha=norm["sha"],
@@ -218,6 +216,7 @@ async def run_sync(
                     committed_at=norm["committed_at"],
                     message=norm["message"],
                     html_url=norm["html_url"],
+                    commit_style_json=style_blob,
                 )
             )
             total += 1

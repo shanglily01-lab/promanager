@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 from datetime import date, datetime, time, timedelta, timezone
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
 from sqlalchemy import delete, func, select
@@ -29,6 +29,10 @@ from app.schemas import (
     HabitsSummary,
     RepoBulkCreate,
     RepoBulkResult,
+    RepoMirrorCenterResponse,
+    RepoMirrorItemOut,
+    RepoMirrorScanRequest,
+    RepoMirrorScanStarted,
     SyncLogItem,
     SyncRequest,
     SyncResponse,
@@ -55,7 +59,31 @@ from app.services.repo_list_service import (
     normalize_repo_full_name,
     repos_from_database,
 )
+from app.services.repo_mirror_service import (
+    build_center_payload,
+    end_scan,
+    run_mirror_scan_db,
+    try_begin_scan,
+)
 from app.services.sync_service import run_sync
+
+
+def _mirror_scan_background(repos: list[str] | None) -> None:
+    """在独立线程中执行；任何未捕获异常都会污染 uvicorn ASGI 日志，故整体包一层。"""
+    try:
+        db = SessionLocal()
+        try:
+            run_mirror_scan_db(db, repos_filter=repos)
+        except Exception:  # noqa: BLE001
+            logging.exception("仓库中心后台扫描失败（已回滚当前会话）")
+            try:
+                db.rollback()
+            except Exception:  # noqa: BLE001
+                pass
+        finally:
+            db.close()
+    finally:
+        end_scan()
 
 
 @asynccontextmanager
@@ -130,6 +158,7 @@ async def _handle_db_operational_error(_request: Request, exc: OperationalError)
 @app.get("/api/health")
 def health(request: Request):
     token = (settings.github_token or "").strip()
+    repo_map = settings.github_token_repo_map
     db_err = getattr(request.app.state, "db_init_error", None)
     commit_count: int | None = None
     if db_err is None:
@@ -145,11 +174,15 @@ def health(request: Request):
     lat = getattr(request.app.state, "last_background_sync_at", None)
     return {
         "ok": True,
-        "has_token": bool(token),
+        "has_token": bool(token) or bool(repo_map),
+        "github_token_repo_map_entries": len(repo_map),
         "database_ready": db_err is None,
         "database_error": db_err,
         "commit_count": commit_count,
         "aws_default_region": ar or None,
+        "github_commit_style_fetch": settings.github_commit_style_fetch_enabled,
+        "github_commit_style_max_per_sync": settings.github_commit_style_max_per_sync,
+        "repo_mirror_root": str(settings.repo_mirror_root_path),
         "background_sync": {
             "enabled": settings.background_sync_enabled,
             "interval_hours": settings.background_sync_interval_hours,
@@ -187,6 +220,32 @@ def api_list_codecommit_repos(
         sync_keys=keys,
         repositories=items,
     )
+
+
+@app.get("/api/repo-mirrors", response_model=RepoMirrorCenterResponse)
+def repo_mirrors_center(db: Session = Depends(get_db)):
+    """仓库中心：合并列表中各仓库的本地镜像状态（需先执行扫描/拉取）。"""
+    raw = build_center_payload(db)
+    return RepoMirrorCenterResponse(
+        mirror_root=raw["mirror_root"],
+        git_available=raw["git_available"],
+        aws_cli_available=raw["aws_cli_available"],
+        scan_in_progress=raw["scan_in_progress"],
+        items=[RepoMirrorItemOut(**x) for x in raw["items"]],
+    )
+
+
+@app.post("/api/repo-mirrors/scan", response_model=RepoMirrorScanStarted)
+def repo_mirrors_scan(
+    body: RepoMirrorScanRequest,
+    background_tasks: BackgroundTasks,
+):
+    """后台依次 git clone / fetch；进行中时返回 409。"""
+    if not try_begin_scan():
+        raise HTTPException(status_code=409, detail="已有本地拉取任务在执行，请稍后再试")
+    repos = body.repos if body.repos else None
+    background_tasks.add_task(_mirror_scan_background, repos)
+    return RepoMirrorScanStarted()
 
 
 @app.get("/api/config/repos")

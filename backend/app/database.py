@@ -68,6 +68,7 @@ def _mysql_convert_tables_utf8mb4() -> None:
         "contributor_aliases",
         "commits",
         "sync_logs",
+        "repo_mirror_states",
     )
     with engine.begin() as conn:
         for t in names:
@@ -81,8 +82,24 @@ def _mysql_convert_tables_utf8mb4() -> None:
                 logging.warning("MySQL 表 %s 转为 utf8mb4 跳过或失败: %s", t, e)
 
 
+def _ensure_commit_style_column() -> None:
+    """已有库升级：commits 表增加 commit_style_json（create_all 不会改已有表结构）。"""
+    if engine.dialect.name == "sqlite":
+        with engine.begin() as conn:
+            rows = conn.execute(text("PRAGMA table_info(commits)")).fetchall()
+            cols = {str(r[1]) for r in rows}
+            if "commit_style_json" not in cols:
+                conn.execute(text("ALTER TABLE commits ADD COLUMN commit_style_json TEXT"))
+    elif engine.dialect.name == "mysql":
+        with engine.begin() as conn:
+            r = conn.execute(text("SHOW COLUMNS FROM commits LIKE 'commit_style_json'")).fetchone()
+            if r is None:
+                conn.execute(text("ALTER TABLE commits ADD COLUMN commit_style_json TEXT NULL"))
+
+
 def init_db():
     from app import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     _mysql_convert_tables_utf8mb4()
+    _ensure_commit_style_column()

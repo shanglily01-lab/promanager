@@ -7,8 +7,9 @@
 | 能力 | 说明 |
 |------|------|
 | 同步 | 调用 GitHub REST API 拉取 `owner/repo` 在指定天数内的 commits 并去重入库；**仓库列表可存数据库**（`/api/repos`），与 `.env` / `repos.txt` 合并去重 |
+| 仓库中心 | 对合并列表中的仓库在本机执行 `git clone` / `git fetch`（默认目录 `backend/data/repo_mirrors`，见 `REPO_MIRROR_ROOT`），检查是否都能拉回本地；前端 **仓库中心** 页或 `GET/POST /api/repo-mirrors*`。CodeCommit 依赖 **本 venv 内的 `awscli`**（已写入 `requirements.txt`）及 `.env` 中的 AWS 凭证，无需单独安装系统 AWS CLI。 |
 | 日报 | 某一 UTC 日历日内，每位成员是否有提交、提交条数与摘要 |
-| 周报 | 以周一为起点的一周（UTC），同上，并附每人习惯统计 |
+| 周报 | 以周一为起点的一周（UTC），同上，并附每人习惯统计；**代码改动画像**（语言扩展名占比、diff 缩进启发式、是否常改测试路径、提交体量等）依赖同步时对 GitHub **单条 commit** 的额外拉取，见 `GITHUB_COMMIT_STYLE_*` |
 | 成员查询 | 按报表主键查提交与习惯：`GitHub登录`、`email:邮箱`、`contrib:档案ID` |
 | 成员档案 | 为每人设置**昵称、备注**，并绑定多个**邮箱**与 **GitHub 登录**；报表中合并为同一 `contrib:编号` |
 
@@ -99,16 +100,19 @@ cd ../backend && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port
 
 ### 配置说明（`backend/.env`）
 
-- **GitHub**：`GITHUB_TOKEN`（私有库建议配置；公开库可不配）。
+- **GitHub**：`GITHUB_TOKEN`。**私有仓库必须配置**：到 [GitHub → Settings → Developer settings → Tokens](https://github.com/settings/tokens) 创建经典 PAT 并勾选 **`repo`**，或创建细粒度 PAT 并对目标仓库勾选 **Contents: Read**、**Metadata: Read**；令牌所属账号须对该私有库有读权限，组织库若启用 SSO 需在令牌页对组织 **Authorize**。将令牌写入 `backend/.env` 的 `GITHUB_TOKEN=` 后**重启 uvicorn**。
+- **多账号 / 多 Token**：在 `.env` 增加 **`GITHUB_TOKEN_REPO_MAP`**（一行 JSON）。键为 **`owner/repo`**（小写），也可用 **`owner/*`** 作为该 owner 的默认 Token；未命中时仍用 `GITHUB_TOKEN`。示例：`GITHUB_TOKEN_REPO_MAP={"myorg/a":"ghp_aaa","other/b":"github_pat_bbb","myorg/*":"ghp_org_fallback"}`。修改后重启 uvicorn。
 - **AWS CodeCommit**：`AWS_ACCESS_KEY_ID`、`AWS_SECRET_ACCESS_KEY`、`AWS_DEFAULT_REGION`；IAM 需读提交相关权限。仓库写法：`cc:区域/仓库名` 或 `cc:区域/仓库名@分支`（如 `cc:ap-southeast-1/my-app@prod`），可写进 `DEFAULT_REPOS`、repos 文件或前端批量导入。
 - **仓库合并**：`DEFAULT_REPOS` 或 `REPOS_FILE`（见 `repos.example.txt`）；也可在前端维护，与数据库合并去重。
 - **数据库**：默认 SQLite（`data/promanager.db`）。用 MySQL 时填 `DB_*` 或 `DATABASE_URL`，细节见 `backend/.env.example`。
 
 ### API 摘要
 
-- `GET /api/health` — 健康检查与是否配置了 Token  
+- `GET /api/health` — 健康检查与是否配置了 Token（含 `github_token_repo_map_entries`：按仓库 Token 映射条目数，不含密钥）  
 - `GET /api/codecommit/repos?region=` — 列出该区域账号下 CodeCommit 仓库，返回 `cc:区域/仓库名` 列表（需 AWS 凭证与 `codecommit:ListRepositories`）  
 - `GET /api/config/repos` — 返回合并后的仓库列表（**数据库已启用** + **DEFAULT_REPOS / REPOS_FILE** 去重）  
+- `GET /api/repo-mirrors` — 仓库中心：镜像根目录、git/aws 是否可用、各仓库上次 clone/fetch 状态  
+- `POST /api/repo-mirrors/scan` — body `{ "repos": [] }`，空数组表示对**合并列表全部**后台依次拉取；进行中再调返回 409  
 - `GET|POST|PATCH|DELETE /api/repos` — 在数据库中维护跟踪仓库；`POST /api/repos/bulk` 批量添加  
 - `POST /api/sync` — body: `{ "repos": [], "since_days": 15 }`，`repos` 空则用上述合并列表；默认回溯 **15 天**（`DEFAULT_SINCE_DAYS` / `since_days`）  
 - `POST /api/sync/stream` — 同上，响应为 **SSE**（`text/event-stream`，每行 `data: {JSON}`），阶段含 `start` / `repo_fetch_*` / `write_*` / `complete` 等，供前端展示进度（**仅发起该次请求的那个浏览器**能收到）  
@@ -120,7 +124,7 @@ cd ../backend && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port
 - `GET /api/reports/weekly.md?week_start=...`  
 - `GET /api/employees` — 返回 `employee_keys` 与 `employee_key_options`（`{ key, label }`，`contrib:` 用成员昵称作 `label` 供下拉展示）  
 - `GET /api/employees/{key}/commits?from=&to=` — `key` 可为 `zhangsan`、`email:a@b.com`、`contrib:1`、`_unknown`  
-- `GET /api/employees/{key}/habits?from=&to=`  
+- `GET /api/employees/{key}/habits?from=&to=` — 含时间/说明习惯 + **style_tags**（文件扩展名、diff 缩进启发式、测试路径、提交体量等，依赖同步时 `GITHUB_COMMIT_STYLE_*` 写入的画像）  
 - `GET|POST|PUT|DELETE /api/contributors` — 成员档案 CRUD（绑定邮箱 / GitHub 登录）  
 
 **识别规则（简）**：每条提交先按**邮箱**是否在档案中匹配；否则按 **GitHub 登录**；否则归入裸登录或 `email:地址` 桶。档案内同一人的多个邮箱、多个登录会汇总到同一 `contrib:ID`。
