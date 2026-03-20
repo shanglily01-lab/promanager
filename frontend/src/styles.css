@@ -1,0 +1,356 @@
+:root {
+  --bg: #0c0f14;
+  --surface: #141a24;
+  --surface2: #1c2433;
+  --border: #2a3548;
+  --text: #e8edf5;
+  --muted: #8b9bb4;
+  --accent: #5b8cff;
+  --accent-dim: #3d5a8f;
+  --success: #3dd68c;
+  --warn: #f0b429;
+  --radius: 12px;
+  --font: "DM Sans", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font);
+  background: radial-gradient(1200px 600px at 10% -10%, #1a2740 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #1e2a22 0%, transparent 50%), var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+#root {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+header.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+header.app-header h1 {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+header.app-header p {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.pill.ok {
+  border-color: #2a5c45;
+  color: var(--success);
+}
+
+.pill.warn {
+  border-color: #5c4a2a;
+  color: var(--warn);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.tabs button {
+  font-family: var(--font);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.tabs button:hover {
+  color: var(--text);
+  border-color: var(--accent-dim);
+}
+
+.tabs button.active {
+  background: var(--surface2);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.35rem;
+  margin-bottom: 1rem;
+}
+
+.card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+input,
+textarea {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  min-width: 200px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 200px;
+  resize: vertical;
+}
+
+button.primary {
+  font-family: var(--font);
+  background: linear-gradient(135deg, var(--accent), #7a5cff);
+  color: #fff;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+button.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.ghost {
+  font-family: var(--font);
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.err {
+  color: #ff8a8a;
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0;
+}
+
+.employee-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.employee-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  background: var(--surface2);
+}
+
+.employee-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.badge.yes {
+  background: rgba(61, 214, 140, 0.15);
+  color: var(--success);
+}
+
+.badge.no {
+  background: rgba(240, 180, 41, 0.12);
+  color: var(--warn);
+}
+
+.commit-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  font-size: 0.82rem;
+}
+
+.commit-list li {
+  padding: 0.35rem 0;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  color: var(--muted);
+}
+
+.commit-list a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.habits-mini {
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.hour-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 48px;
+  margin-top: 0.5rem;
+}
+
+.hour-bars span {
+  flex: 1;
+  background: var(--accent-dim);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+  max-height: 100%;
+}
+
+pre.md {
+  white-space: pre-wrap;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.sync-progress {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.sync-progress-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.sync-progress-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.sync-progress-bar > div {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+  border-radius: 3px;
+  transition: width 0.25s ease;
+}
+
+.sync-progress-log {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--muted);
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.sync-history-wrap {
+  overflow-x: auto;
+  margin-bottom: 0.5rem;
+}
+
+.sync-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.sync-history-table th,
+.sync-history-table td {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.sync-history-table th {
+  color: var(--muted);
+  font-weight: 600;
+  background: var(--surface2);
+}
+
+.sync-history-table .pill {
+  font-size: 0.72rem;
+  padding: 0.1rem 0.4rem;
+}

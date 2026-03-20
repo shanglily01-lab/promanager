@@ -1,0 +1,6 @@
+# 复制本文件为 repos.txt，每行一个仓库（owner/repo）
+# 以 # 开头的整行、空行忽略；行尾 # 后面可写备注
+
+# myorg/frontend
+# myorg/api-service
+# myorg/worker
