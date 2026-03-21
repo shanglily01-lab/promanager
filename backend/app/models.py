@@ -38,6 +38,7 @@ class Contributor(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nickname: Mapped[str] = mapped_column(String(128))
     notes: Mapped[str] = mapped_column(Text, default="")
+    team: Mapped[str] = mapped_column(String(50), default="web3", nullable=False, index=True)
     aliases: Mapped[list["ContributorAlias"]] = relationship(
         "ContributorAlias", back_populates="contributor", cascade="all, delete-orphan"
     )

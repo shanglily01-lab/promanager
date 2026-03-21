@@ -930,3 +930,129 @@ input.input-date {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* ── 习惯变化检测 ──────────────────────────────────── */
+
+.hc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.hc-key-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 44rem;
+}
+
+.hc-periods {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hc-period {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem 0.65rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  min-width: 16rem;
+}
+
+.hc-period legend {
+  font-size: 0.82rem;
+  color: var(--muted);
+  padding: 0 0.3rem;
+}
+
+.hc-result {
+  margin-top: 1rem;
+}
+
+.hc-summary {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+}
+
+.hc-summary--alert {
+  border-color: var(--accent-dim);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+}
+
+.hc-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.hc-vs {
+  font-weight: 600;
+  color: var(--accent);
+  padding: 0 0.2rem;
+}
+
+.hc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.hc-table th {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 2px solid var(--border);
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hc-table td {
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.hc-row--significant td {
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg));
+}
+
+.hc-dim {
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.hc-before,
+.hc-after {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.hc-trend {
+  text-align: center;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.hc-trend[data-trend="up"] { color: #22863a; }
+.hc-trend[data-trend="down"] { color: #cb2431; }
+.hc-trend[data-trend="shift"] { color: #e36209; }
+.hc-trend[data-trend="stable"] { color: var(--muted); }
+
+.hc-conclusion {
+  line-height: 1.5;
+  color: var(--text);
+}

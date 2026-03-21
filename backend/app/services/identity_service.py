@@ -7,7 +7,7 @@ from sqlalchemy import false, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import CommitRecord, Contributor, ContributorAlias
+from app.models import CommitRecord, Contributor, ContributorAlias, TrackedRepository
 
 
 def normalize_email(value: str | None) -> str | None:
@@ -113,19 +113,26 @@ def commit_filter_for_employee_key(key: str, db: Session):
     return CommitRecord.author_login == kl.lower()
 
 
-def suggested_employee_keys(db: Session) -> list[str]:
+def suggested_employee_keys(db: Session, team: str | None = None) -> list[str]:
     """用于前端下拉：去重后的报表主键（含档案、邮箱桶、GitHub 登录）。"""
     maps = load_alias_maps(db)
     keys: set[str] = set()
-    pairs = db.execute(
-        select(CommitRecord.author_login, CommitRecord.author_email).distinct()
-    ).all()
+    q = select(CommitRecord.author_login, CommitRecord.author_email).distinct()
+    if team:
+        team_repos_sq = select(TrackedRepository.full_name).where(
+            TrackedRepository.team == team, TrackedRepository.enabled.is_(True)
+        )
+        q = q.where(CommitRecord.repo_full_name.in_(team_repos_sq))
+    pairs = db.execute(q).all()
     for login, email in pairs:
         k, _ = resolve_employee_key_parts(login, email, maps)
         keys.add(k)
     for m in settings.member_logins:
         keys.add(configured_member_key(m, maps))
-    for c in db.execute(select(Contributor)).scalars().all():
+    contrib_q = select(Contributor)
+    if team:
+        contrib_q = contrib_q.where(Contributor.team == team)
+    for c in db.execute(contrib_q).scalars().all():
         keys.add(f"contrib:{c.id}")
     return sort_employee_keys(keys)
 
@@ -150,9 +157,9 @@ def display_label_for_employee_key(key: str, contributors_by_id: dict[int, Contr
     return k
 
 
-def suggested_employee_key_options(db: Session) -> list[dict[str, str]]:
+def suggested_employee_key_options(db: Session, team: str | None = None) -> list[dict[str, str]]:
     """供前端下拉：key 为实际报表主键，label 为人类可读名称。"""
-    keys = suggested_employee_keys(db)
+    keys = suggested_employee_keys(db, team=team)
     by_id = {c.id: c for c in db.execute(select(Contributor)).scalars().all()}
     raw = [display_label_for_employee_key(k, by_id) for k in keys]
     cnt = Counter(raw)

@@ -163,6 +163,7 @@ class ContributorCreate(BaseModel):
     notes: str = ""
     emails: list[str] = Field(default_factory=list)
     github_logins: list[str] = Field(default_factory=list)
+    team: str = "web3"
 
 
 class ContributorAliasOut(BaseModel):
@@ -172,10 +173,33 @@ class ContributorAliasOut(BaseModel):
 
 
 class ContributorOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     nickname: str
     notes: str
+    team: str = "web3"
     aliases: list[ContributorAliasOut]
+
+
+class HabitChangeItem(BaseModel):
+    dimension: str
+    before_desc: str
+    after_desc: str
+    trend: str  # "up" | "down" | "stable" | "shift"
+    conclusion: str
+    significant: bool
+
+
+class HabitChangeReport(BaseModel):
+    period1_from: date
+    period1_to: date
+    period2_from: date
+    period2_to: date
+    period1_commits: int
+    period2_commits: int
+    changes: list[HabitChangeItem]
+    summary: str
 
 
 class DailyReport(BaseModel):

@@ -390,8 +390,8 @@ def run_mirror_scan_db(db: Session, repos_filter: list[str] | None = None) -> No
             _commit_one_mirror(db, fn, "error", str(e)[:2000], rel)
 
 
-def build_center_payload(db: Session) -> dict:
-    merged = merged_sync_repos(db)
+def build_center_payload(db: Session, team: str | None = None) -> dict:
+    merged = merged_sync_repos(db, team=team)
     by_fn = {r.full_name: r for r in db.execute(select(RepoMirrorState)).scalars().all()}
     # 兼容大小写：合并列表为主键
     by_lower = {k.lower(): v for k, v in by_fn.items()}

@@ -4,9 +4,29 @@ import { getJson } from "../api";
 import { DateInput } from "../components/DateInput";
 import { RepoSourceBadge } from "../components/RepoSourceBadge";
 
-type Props = { onError: (msg: string | null) => void };
+type Props = { onError: (msg: string | null) => void; team: string };
 
-export function EmployeeTab({ onError }: Props) {
+type HabitChangeItem = {
+  dimension: string;
+  before_desc: string;
+  after_desc: string;
+  trend: string;
+  conclusion: string;
+  significant: boolean;
+};
+
+type HabitChangeReport = {
+  period1_from: string;
+  period1_to: string;
+  period2_from: string;
+  period2_to: string;
+  period1_commits: number;
+  period2_commits: number;
+  changes: HabitChangeItem[];
+  summary: string;
+};
+
+export function EmployeeTab({ onError, team }: Props) {
   const [empLogin, setEmpLogin] = useState("");
   const [empFrom, setEmpFrom] = useState("");
   const [empTo, setEmpTo] = useState("");
@@ -14,11 +34,26 @@ export function EmployeeTab({ onError }: Props) {
   const [empHabits, setEmpHabits] = useState<HabitsSummary | null>(null);
   const [employeeKeyOptions, setEmployeeKeyOptions] = useState<{ key: string; label: string }[]>([]);
 
+  // Habit change detection state
+  const [hcLogin, setHcLogin] = useState("");
+  const [hcP2From, setHcP2From] = useState("");
+  const [hcP2To, setHcP2To] = useState("");
+  const [hcReport, setHcReport] = useState<HabitChangeReport | null>(null);
+  const [hcLoading, setHcLoading] = useState(false);
+
+  // 切换团队时清空已加载数据
+  useEffect(() => {
+    setEmpLogin("");
+    setEmpCommits(null);
+    setEmpHabits(null);
+    setHcReport(null);
+  }, [team]);
+
   useEffect(() => {
     getJson<{
       employee_key_options?: { key: string; label: string }[];
       employee_keys?: string[];
-    }>("/api/employees")
+    }>(`/api/employees?team=${encodeURIComponent(team)}`)
       .then((j) => {
         if (j.employee_key_options?.length) {
           setEmployeeKeyOptions(j.employee_key_options);
@@ -27,7 +62,7 @@ export function EmployeeTab({ onError }: Props) {
         }
       })
       .catch(() => setEmployeeKeyOptions([]));
-  }, []);
+  }, [team]);
 
   const loadEmployee = async () => {
     onError(null);
@@ -40,6 +75,7 @@ export function EmployeeTab({ onError }: Props) {
     const q = new URLSearchParams();
     if (empFrom) q.set("from", empFrom);
     if (empTo) q.set("to", empTo);
+    q.set("team", team);
     const qs = q.toString();
     const suffix = qs ? `?${qs}` : "";
     const key = empLogin.trim();
@@ -55,6 +91,42 @@ export function EmployeeTab({ onError }: Props) {
     }
   };
 
+  const loadHabitChange = async () => {
+    onError(null);
+    setHcReport(null);
+    const key = hcLogin.trim() || empLogin.trim();
+    if (!key) {
+      onError("请先填写成员主键");
+      return;
+    }
+    if (!empFrom || !empTo) {
+      onError("请先在上方填写前期日期范围");
+      return;
+    }
+    if (!hcP2From || !hcP2To) {
+      onError("请填写后期日期范围");
+      return;
+    }
+    setHcLoading(true);
+    try {
+      const q = new URLSearchParams({
+        p1_from: empFrom,
+        p1_to: empTo,
+        p2_from: hcP2From,
+        p2_to: hcP2To,
+        ...(team ? { team } : {}),
+      });
+      const report = await getJson<HabitChangeReport>(
+        `/api/employees/${encodeURIComponent(key)}/habit-changes?${q.toString()}`
+      );
+      setHcReport(report);
+    } catch (e) {
+      onError(String(e));
+    } finally {
+      setHcLoading(false);
+    }
+  };
+
   const maxHour = useMemo(() => {
     if (!empHabits) return 1;
     return Math.max(1, ...Object.values(empHabits.commits_by_hour_utc));
@@ -66,6 +138,13 @@ export function EmployeeTab({ onError }: Props) {
     if (!t) return "";
     return employeeKeyOptions.some((o) => o.key === t) ? t : "";
   }, [empLogin, employeeKeyOptions]);
+
+  const trendIcon = (trend: string) => {
+    if (trend === "up") return "↑";
+    if (trend === "down") return "↓";
+    if (trend === "shift") return "⇄";
+    return "—";
+  };
 
   return (
     <section className="card tab-panel" aria-labelledby="employee-heading">
@@ -184,6 +263,96 @@ export function EmployeeTab({ onError }: Props) {
         </ul>
       )}
       {empCommits && empCommits.length === 0 && <p className="card-hint">该条件下无提交记录。</p>}
+
+      {/* ── 习惯变化检测 ─────────────────────────────── */}
+      <h2 className="subsection-title">习惯变化检测</h2>
+      <p className="card-hint">
+        以上方选择的日期范围为<strong>前期</strong>，再指定一个<strong>后期</strong>，对比两段时间的提交习惯变化。
+        成员主键默认使用上方已选主键，也可在此单独填写。
+      </p>
+      <div className="hc-form">
+        <label className="hc-key-label">
+          成员主键（可选，默认同上）
+          <div className="key-row">
+            <select
+              aria-label="按成员名称选择（习惯对比）"
+              value={employeeKeyOptions.some((o) => o.key === hcLogin) ? hcLogin : ""}
+              onChange={(e) => setHcLogin(e.target.value)}
+              className="select-key"
+            >
+              <option value="">按名称选择…</option>
+              {employeeKeyOptions.map((o) => (
+                <option key={o.key} value={o.key}>{o.label}</option>
+              ))}
+            </select>
+            <input
+              className="input-key"
+              value={hcLogin}
+              onChange={(e) => setHcLogin(e.target.value)}
+              placeholder={empLogin.trim() || "或输入主键"}
+              list="hc-key-hints"
+            />
+          </div>
+          <datalist id="hc-key-hints">
+            {employeeKeyOptions.map((o) => (
+              <option key={o.key} value={o.key} label={o.label} />
+            ))}
+          </datalist>
+        </label>
+        <div className="hc-periods">
+          <fieldset className="hc-period">
+            <legend>后期</legend>
+            <label>
+              从
+              <DateInput value={hcP2From} onChange={setHcP2From} aria-label="后期开始日期" />
+            </label>
+            <label>
+              到
+              <DateInput value={hcP2To} onChange={setHcP2To} aria-label="后期结束日期" />
+            </label>
+          </fieldset>
+        </div>
+        <button type="button" className="primary" disabled={hcLoading} onClick={loadHabitChange}>
+          {hcLoading ? "分析中…" : "分析习惯变化"}
+        </button>
+      </div>
+
+      {hcReport && (
+        <div className="hc-result">
+          <div className={`hc-summary ${hcReport.changes.some((c) => c.significant) ? "hc-summary--alert" : ""}`}>
+            {hcReport.summary}
+          </div>
+          <div className="hc-meta">
+            前期 {hcReport.period1_from} ~ {hcReport.period1_to}（{hcReport.period1_commits} 次提交）
+            <span className="hc-vs">vs</span>
+            后期 {hcReport.period2_from} ~ {hcReport.period2_to}（{hcReport.period2_commits} 次提交）
+          </div>
+          <table className="hc-table">
+            <thead>
+              <tr>
+                <th>维度</th>
+                <th>前期</th>
+                <th>后期</th>
+                <th>趋势</th>
+                <th>结论</th>
+              </tr>
+            </thead>
+            <tbody>
+              {hcReport.changes.map((item) => (
+                <tr key={item.dimension} className={item.significant ? "hc-row--significant" : ""}>
+                  <td className="hc-dim">{item.dimension}</td>
+                  <td className="hc-before">{item.before_desc}</td>
+                  <td className="hc-after">{item.after_desc}</td>
+                  <td className="hc-trend" data-trend={item.trend}>
+                    {trendIcon(item.trend)}
+                  </td>
+                  <td className="hc-conclusion">{item.conclusion}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

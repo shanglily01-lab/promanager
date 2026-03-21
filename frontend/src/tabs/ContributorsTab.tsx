@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ContributorOut } from "../api";
 import { deleteJson, getJson, postJson, putJson } from "../api";
 
-type Props = { onError: (msg: string | null) => void };
+type Props = { onError: (msg: string | null) => void; team: string };
 
 function splitLines(s: string): string[] {
   return s
@@ -11,7 +11,7 @@ function splitLines(s: string): string[] {
     .filter(Boolean);
 }
 
-export function ContributorsTab({ onError }: Props) {
+export function ContributorsTab({ onError, team }: Props) {
   const [contributors, setContributors] = useState<ContributorOut[]>([]);
   const [contribNick, setContribNick] = useState("");
   const [contribNotes, setContribNotes] = useState("");
@@ -20,10 +20,10 @@ export function ContributorsTab({ onError }: Props) {
   const [editingContribId, setEditingContribId] = useState<number | null>(null);
 
   useEffect(() => {
-    getJson<ContributorOut[]>("/api/contributors")
+    getJson<ContributorOut[]>(`/api/contributors?team=${encodeURIComponent(team)}`)
       .then(setContributors)
       .catch(() => setContributors([]));
-  }, []);
+  }, [team]);
 
   const resetContribForm = () => {
     setContribNick("");
@@ -52,6 +52,7 @@ export function ContributorsTab({ onError }: Props) {
       notes: contribNotes.trim(),
       emails: splitLines(contribEmails),
       github_logins: splitLines(contribLogins),
+      team,
     };
     try {
       if (editingContribId != null) {
@@ -59,7 +60,7 @@ export function ContributorsTab({ onError }: Props) {
       } else {
         await postJson<ContributorOut>("/api/contributors", body);
       }
-      const list = await getJson<ContributorOut[]>("/api/contributors");
+      const list = await getJson<ContributorOut[]>(`/api/contributors?team=${encodeURIComponent(team)}`);
       setContributors(list);
       resetContribForm();
     } catch (e) {
@@ -72,7 +73,7 @@ export function ContributorsTab({ onError }: Props) {
     onError(null);
     try {
       await deleteJson(`/api/contributors/${id}`);
-      setContributors(await getJson<ContributorOut[]>("/api/contributors"));
+      setContributors(await getJson<ContributorOut[]>(`/api/contributors?team=${encodeURIComponent(team)}`));
       if (editingContribId === id) resetContribForm();
     } catch (e) {
       onError(String(e));

@@ -18,7 +18,7 @@ type CenterResponse = {
   items: RepoMirrorItem[];
 };
 
-type Props = { onError: (msg: string | null) => void };
+type Props = { onError: (msg: string | null) => void; team: string };
 
 function statusClass(s: string): string {
   if (s === "ok") return "mirror-ok";
@@ -28,7 +28,7 @@ function statusClass(s: string): string {
   return "";
 }
 
-export function RepoMirrorsTab({ onError }: Props) {
+export function RepoMirrorsTab({ onError, team }: Props) {
   const [data, setData] = useState<CenterResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -37,7 +37,7 @@ export function RepoMirrorsTab({ onError }: Props) {
     onError(null);
     setLoading(true);
     try {
-      const j = await getJson<CenterResponse>("/api/repo-mirrors");
+      const j = await getJson<CenterResponse>(`/api/repo-mirrors?team=${encodeURIComponent(team)}`);
       setData(j);
       setScanning(j.scan_in_progress);
     } catch (e) {
@@ -46,7 +46,7 @@ export function RepoMirrorsTab({ onError }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [onError]);
+  }, [onError, team]);
 
   useEffect(() => {
     void load();

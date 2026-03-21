@@ -26,6 +26,7 @@ from app.schemas import (
     ContributorAliasOut,
     ContributorCreate,
     ContributorOut,
+    HabitChangeReport,
     HabitsSummary,
     RepoBulkCreate,
     RepoBulkResult,
@@ -66,6 +67,7 @@ from app.services.repo_mirror_service import (
     try_begin_scan,
 )
 from app.services.sync_service import run_sync
+from app.services.habit_change_service import analyze_habit_changes
 
 
 def _mirror_scan_background(repos: list[str] | None) -> None:
@@ -218,9 +220,12 @@ def api_list_codecommit_repos(
 
 
 @app.get("/api/repo-mirrors", response_model=RepoMirrorCenterResponse)
-def repo_mirrors_center(db: Session = Depends(get_db)):
+def repo_mirrors_center(
+    team: str | None = Query(None, description="团队标识（web3 / game）"),
+    db: Session = Depends(get_db),
+):
     """仓库中心：合并列表中各仓库的本地镜像状态（需先执行扫描/拉取）。"""
-    raw = build_center_payload(db)
+    raw = build_center_payload(db, team=team)
     return RepoMirrorCenterResponse(
         mirror_root=raw["mirror_root"],
         git_available=raw["git_available"],
@@ -572,15 +577,21 @@ def _contributor_to_out(c: Contributor) -> ContributorOut:
 
 
 @app.get("/api/contributors", response_model=list[ContributorOut])
-def list_contributors(db: Session = Depends(get_db)):
-    rows = db.execute(select(Contributor).order_by(Contributor.id)).scalars().all()
+def list_contributors(
+    team: str | None = Query(None, description="团队标识（web3 / game）"),
+    db: Session = Depends(get_db),
+):
+    q = select(Contributor).order_by(Contributor.id)
+    if team:
+        q = q.where(Contributor.team == team)
+    rows = db.execute(q).scalars().all()
     return [_contributor_to_out(c) for c in rows]
 
 
 @app.post("/api/contributors", response_model=ContributorOut)
 def create_contributor(body: ContributorCreate, db: Session = Depends(get_db)):
     _check_alias_conflicts(db, body.emails, body.github_logins)
-    c = Contributor(nickname=body.nickname.strip(), notes=(body.notes or "").strip())
+    c = Contributor(nickname=body.nickname.strip(), notes=(body.notes or "").strip(), team=body.team)
     db.add(c)
     db.flush()
     for e in body.emails:
@@ -633,10 +644,13 @@ def delete_contributor(contributor_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/api/employees")
-def list_employees(db: Session = Depends(get_db)):
+def list_employees(
+    team: str | None = Query(None, description="团队标识（web3 / game）"),
+    db: Session = Depends(get_db),
+):
     logins_cfg = settings.member_logins
-    employee_keys = suggested_employee_keys(db)
-    employee_key_options = suggested_employee_key_options(db)
+    employee_keys = suggested_employee_keys(db, team=team)
+    employee_key_options = suggested_employee_key_options(db, team=team)
     if logins_cfg:
         return {
             "source": "config",
@@ -657,10 +671,16 @@ def employee_commits(
     login: str,
     from_: str | None = Query(None, alias="from"),
     to: str | None = Query(None, alias="to"),
+    team: str | None = Query(None, description="团队标识（web3 / game）"),
     db: Session = Depends(get_db),
 ):
     cond = commit_filter_for_employee_key(login, db)
     q = select(CommitRecord).where(cond)
+    if team:
+        team_repos_sq = select(TrackedRepository.full_name).where(
+            TrackedRepository.team == team, TrackedRepository.enabled.is_(True)
+        )
+        q = q.where(CommitRecord.repo_full_name.in_(team_repos_sq))
     if from_:
         start = datetime.combine(_parse_date(from_), time.min, tzinfo=timezone.utc)
         q = q.where(CommitRecord.committed_at >= start)
@@ -688,10 +708,16 @@ def employee_habits(
     login: str,
     from_: str | None = Query(None, alias="from"),
     to: str | None = Query(None, alias="to"),
+    team: str | None = Query(None, description="团队标识（web3 / game）"),
     db: Session = Depends(get_db),
 ):
     cond = commit_filter_for_employee_key(login, db)
     q = select(CommitRecord).where(cond)
+    if team:
+        team_repos_sq = select(TrackedRepository.full_name).where(
+            TrackedRepository.team == team, TrackedRepository.enabled.is_(True)
+        )
+        q = q.where(CommitRecord.repo_full_name.in_(team_repos_sq))
     if from_:
         start = datetime.combine(_parse_date(from_), time.min, tzinfo=timezone.utc)
         q = q.where(CommitRecord.committed_at >= start)
@@ -700,6 +726,27 @@ def employee_habits(
         q = q.where(CommitRecord.committed_at <= end)
     rows = list(db.execute(q).scalars().all())
     return compute_habits(rows)
+
+
+@app.get("/api/employees/{login}/habit-changes", response_model=HabitChangeReport)
+def employee_habit_changes(
+    login: str,
+    p1_from: str = Query(..., alias="p1_from"),
+    p1_to: str = Query(..., alias="p1_to"),
+    p2_from: str = Query(..., alias="p2_from"),
+    p2_to: str = Query(..., alias="p2_to"),
+    team: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    return analyze_habit_changes(
+        db,
+        login,
+        _parse_date(p1_from),
+        _parse_date(p1_to),
+        _parse_date(p2_from),
+        _parse_date(p2_to),
+        team=team,
+    )
 
 
 # 存在 frontend/dist 时，由本进程一并提供静态页（只跑后端即可用 http://127.0.0.1:3020/ 打开界面）

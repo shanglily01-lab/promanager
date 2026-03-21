@@ -102,11 +102,11 @@ export default function App() {
             team={team}
           />
         ) : null}
-        {tab === "mirrors" ? <RepoMirrorsTab onError={setErr} /> : null}
+        {tab === "mirrors" ? <RepoMirrorsTab onError={setErr} team={team} /> : null}
         {tab === "daily" ? <DailyTab onError={setErr} team={team} /> : null}
         {tab === "weekly" ? <WeeklyTab onError={setErr} team={team} /> : null}
-        {tab === "contributors" ? <ContributorsTab onError={setErr} /> : null}
-        {tab === "employee" ? <EmployeeTab onError={setErr} /> : null}
+        {tab === "contributors" ? <ContributorsTab onError={setErr} team={team} /> : null}
+        {tab === "employee" ? <EmployeeTab onError={setErr} team={team} /> : null}
       </div>
     </>
   );
