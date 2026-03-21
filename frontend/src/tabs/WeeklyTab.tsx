@@ -5,9 +5,9 @@ import { DateInput } from "../components/DateInput";
 import { RepoSourceBadge } from "../components/RepoSourceBadge";
 import { mondayISO } from "../utils/date";
 
-type Props = { onError: (msg: string | null) => void };
+type Props = { onError: (msg: string | null) => void; team: string };
 
-export function WeeklyTab({ onError }: Props) {
+export function WeeklyTab({ onError, team }: Props) {
   const [weekStart, setWeekStart] = useState(mondayISO);
   const [weekly, setWeekly] = useState<WeeklyReport | null>(null);
   const [weeklyMd, setWeeklyMd] = useState<string | null>(null);
@@ -18,8 +18,8 @@ export function WeeklyTab({ onError }: Props) {
     setWeeklyMd(null);
     try {
       const [j, md] = await Promise.all([
-        getJson<WeeklyReport>(`/api/reports/weekly?week_start=${encodeURIComponent(weekStart)}`),
-        fetch(`/api/reports/weekly.md?week_start=${encodeURIComponent(weekStart)}`).then((r) => r.text()),
+        getJson<WeeklyReport>(`/api/reports/weekly?week_start=${encodeURIComponent(weekStart)}&team=${encodeURIComponent(team)}`),
+        fetch(`/api/reports/weekly.md?week_start=${encodeURIComponent(weekStart)}&team=${encodeURIComponent(team)}`).then((r) => r.text()),
       ]);
       setWeekly(j);
       setWeeklyMd(md);

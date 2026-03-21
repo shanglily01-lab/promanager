@@ -10,6 +10,7 @@ class SyncRequest(BaseModel):
         description="owner/repo；空则使用「数据库已启用仓库 + .env / REPOS_FILE」合并去重后的列表",
     )
     since_days: int = Field(15, ge=1, le=365, description="回溯抓取提交的天数")
+    team: str | None = Field(None, description="团队标识（web3 / game）；空则不过滤团队")
 
 
 class SyncResponse(BaseModel):
@@ -61,6 +62,7 @@ class TrackedRepoOut(BaseModel):
 
     id: int
     full_name: str
+    team: str
     enabled: bool
     notes: str
     created_at: datetime
@@ -69,15 +71,18 @@ class TrackedRepoOut(BaseModel):
 class TrackedRepoCreate(BaseModel):
     full_name: str
     notes: str = ""
+    team: str = "web3"
 
 
 class TrackedRepoPatch(BaseModel):
     enabled: bool | None = None
     notes: str | None = None
+    team: str | None = None
 
 
 class RepoBulkCreate(BaseModel):
     full_names: list[str] = Field(default_factory=list)
+    team: str = "web3"
 
 
 class RepoBulkResult(BaseModel):

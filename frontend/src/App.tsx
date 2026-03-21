@@ -10,6 +10,12 @@ import { SyncTab } from "./tabs/SyncTab";
 import { WeeklyTab } from "./tabs/WeeklyTab";
 
 type TabId = "sync" | "mirrors" | "daily" | "weekly" | "contributors" | "employee";
+type Team = "web3" | "game";
+
+const TEAMS: readonly { id: Team; label: string }[] = [
+  { id: "web3", label: "Web3 团队" },
+  { id: "game", label: "游戏团队" },
+] as const;
 
 const TABS: readonly { id: TabId; label: string }[] = [
   { id: "sync", label: "同步仓库" },
@@ -21,6 +27,7 @@ const TABS: readonly { id: TabId; label: string }[] = [
 ] as const;
 
 export default function App() {
+  const [team, setTeam] = useState<Team>("web3");
   const [tab, setTab] = useState<TabId>("sync");
   const [health, setHealth] = useState<HealthState | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -36,6 +43,24 @@ export default function App() {
   return (
     <>
       <AppHeader health={health} />
+
+      <nav className="team-switcher" role="tablist" aria-label="团队切换">
+        {TEAMS.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={team === id}
+            className={team === id ? "active" : ""}
+            onClick={() => {
+              setErr(null);
+              setTeam(id);
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
 
       <nav className="tabs" role="tablist" aria-label="功能分区">
         {TABS.map(({ id, label }) => (
@@ -74,11 +99,12 @@ export default function App() {
             onError={setErr}
             onHealthReload={loadHealth}
             awsDefaultRegion={health?.aws_default_region}
+            team={team}
           />
         ) : null}
         {tab === "mirrors" ? <RepoMirrorsTab onError={setErr} /> : null}
-        {tab === "daily" ? <DailyTab onError={setErr} /> : null}
-        {tab === "weekly" ? <WeeklyTab onError={setErr} /> : null}
+        {tab === "daily" ? <DailyTab onError={setErr} team={team} /> : null}
+        {tab === "weekly" ? <WeeklyTab onError={setErr} team={team} /> : null}
         {tab === "contributors" ? <ContributorsTab onError={setErr} /> : null}
         {tab === "employee" ? <EmployeeTab onError={setErr} /> : null}
       </div>

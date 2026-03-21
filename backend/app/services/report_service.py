@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import CommitRecord, Contributor
+from app.models import CommitRecord, Contributor, TrackedRepository
 from app.schemas import CommitItem, DailyReport, EmployeeSummary, HabitsSummary, WeeklyReport
 from app.services.commit_style_analyzer import (
     conventional_commit_pct,
@@ -178,14 +178,16 @@ def compute_habits(commits: list[CommitRecord]) -> HabitsSummary:
     )
 
 
-def build_daily_report(db: Session, report_date: date) -> DailyReport:
+def build_daily_report(db: Session, report_date: date, team: str | None = None) -> DailyReport:
     maps = load_alias_maps(db)
     start, end = _day_range_utc(report_date)
-    rows = list(
-        db.execute(
-            select(CommitRecord).where(CommitRecord.committed_at >= start, CommitRecord.committed_at < end)
-        ).scalars().all()
-    )
+    q = select(CommitRecord).where(CommitRecord.committed_at >= start, CommitRecord.committed_at < end)
+    if team:
+        team_repos_sq = select(TrackedRepository.full_name).where(
+            TrackedRepository.team == team, TrackedRepository.enabled.is_(True)
+        )
+        q = q.where(CommitRecord.repo_full_name.in_(team_repos_sq))
+    rows = list(db.execute(q).scalars().all())
 
     by_key: dict[str, list[CommitRecord]] = defaultdict(list)
     for r in rows:
@@ -203,14 +205,16 @@ def build_daily_report(db: Session, report_date: date) -> DailyReport:
     )
 
 
-def build_weekly_report(db: Session, week_start: date) -> WeeklyReport:
+def build_weekly_report(db: Session, week_start: date, team: str | None = None) -> WeeklyReport:
     maps = load_alias_maps(db)
     start, end = _week_range_utc(week_start)
-    rows = list(
-        db.execute(
-            select(CommitRecord).where(CommitRecord.committed_at >= start, CommitRecord.committed_at < end)
-        ).scalars().all()
-    )
+    q = select(CommitRecord).where(CommitRecord.committed_at >= start, CommitRecord.committed_at < end)
+    if team:
+        team_repos_sq = select(TrackedRepository.full_name).where(
+            TrackedRepository.team == team, TrackedRepository.enabled.is_(True)
+        )
+        q = q.where(CommitRecord.repo_full_name.in_(team_repos_sq))
+    rows = list(db.execute(q).scalars().all())
 
     by_key: dict[str, list[CommitRecord]] = defaultdict(list)
     for r in rows:

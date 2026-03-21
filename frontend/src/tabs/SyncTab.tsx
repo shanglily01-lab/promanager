@@ -14,9 +14,10 @@ type Props = {
   onError: (msg: string | null) => void;
   onHealthReload: () => void;
   awsDefaultRegion?: string | null;
+  team: string;
 };
 
-export function SyncTab({ onError, onHealthReload, awsDefaultRegion }: Props) {
+export function SyncTab({ onError, onHealthReload, awsDefaultRegion, team }: Props) {
   const [reposInput, setReposInput] = useState("octocat/Hello-World");
   const [sinceDays, setSinceDays] = useState(15);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
@@ -98,8 +99,8 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion }: Props) {
           config_count: number;
           repos_file: string | null;
           repos_file_exists: boolean;
-        }>("/api/config/repos"),
-        getJson<TrackedRepo[]>("/api/repos"),
+        }>(`/api/config/repos?team=${encodeURIComponent(team)}`),
+        getJson<TrackedRepo[]>(`/api/repos?team=${encodeURIComponent(team)}`),
       ]);
       setRepoConfig(cfg);
       setTrackedRepos(list);
@@ -107,7 +108,7 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion }: Props) {
       setRepoConfig(null);
       setTrackedRepos([]);
     }
-  }, []);
+  }, [team]);
 
   useEffect(() => {
     void refreshSyncData();
@@ -127,7 +128,7 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion }: Props) {
     }, 400);
     const completeHolder: { ev: Record<string, unknown> | null } = { ev: null };
     try {
-      await postSyncStream("/api/sync/stream", { repos, since_days: sinceDays }, (ev) => {
+      await postSyncStream("/api/sync/stream", { repos, since_days: sinceDays, team }, (ev) => {
         if (ev.phase === "complete") {
           completeHolder.ev = ev;
           const ok = ev.ok === true;
@@ -256,7 +257,7 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion }: Props) {
     try {
       const res = await postJson<{ added: string[]; skipped: string[]; errors: string[] }>(
         "/api/repos/bulk",
-        { full_names }
+        { full_names, team }
       );
       const parts = [`新增 ${res.added.length} 个`, `跳过重复 ${res.skipped.length} 个`];
       if (res.errors.length) parts.push(`校验失败 ${res.errors.length} 条`);

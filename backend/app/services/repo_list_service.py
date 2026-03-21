@@ -66,27 +66,32 @@ def normalize_repo_full_name(raw: str) -> str:
     return f"{owner.lower()}/{name.lower()}"
 
 
-def repos_from_database(db: Session, *, enabled_only: bool = True) -> list[str]:
+def repos_from_database(db: Session, *, enabled_only: bool = True, team: str | None = None) -> list[str]:
     q = select(TrackedRepository.full_name).order_by(TrackedRepository.id)
     if enabled_only:
         q = q.where(TrackedRepository.enabled.is_(True))
+    if team:
+        q = q.where(TrackedRepository.team == team)
     return list(db.execute(q).scalars().all())
 
 
-def merged_sync_repos(db: Session) -> list[str]:
-    """数据库中已启用仓库优先列出，再并入 .env / REPOS_FILE，全局去重（小写）。"""
+def merged_sync_repos(db: Session, team: str | None = None) -> list[str]:
+    """数据库中已启用仓库优先列出，再并入 .env / REPOS_FILE，全局去重（小写）。
+    指定 team 时只取该团队的数据库仓库，不合并 .env（.env 仓库归属 web3）。
+    """
     seen: set[str] = set()
     out: list[str] = []
-    for r in repos_from_database(db):
+    for r in repos_from_database(db, team=team):
         k = r.lower()
         if k not in seen:
             seen.add(k)
             out.append(r)
-    for r in settings.repo_list:
-        k = r.strip().lower()
-        if not k:
-            continue
-        if k not in seen:
-            seen.add(k)
-            out.append(r.strip())
+    if not team or team == "web3":
+        for r in settings.repo_list:
+            k = r.strip().lower()
+            if not k:
+                continue
+            if k not in seen:
+                seen.add(k)
+                out.append(r.strip())
     return out

@@ -244,14 +244,17 @@ def repo_mirrors_scan(
 
 
 @app.get("/api/config/repos")
-def list_configured_repos(db: Session = Depends(get_db)):
+def list_configured_repos(
+    team: str | None = Query(None, description="团队标识（web3 / game）"),
+    db: Session = Depends(get_db),
+):
     """合并：数据库中已启用仓库 + .env / REPOS_FILE（去重）。"""
-    merged = merged_sync_repos(db)
+    merged = merged_sync_repos(db, team=team)
     path = settings.repos_file_path
     return {
         "count": len(merged),
         "repos": merged,
-        "database_enabled_count": len(repos_from_database(db)),
+        "database_enabled_count": len(repos_from_database(db, team=team)),
         "config_count": len(settings.repo_list),
         "repos_file": str(path) if path else None,
         "repos_file_exists": path.is_file() if path else False,
@@ -259,8 +262,14 @@ def list_configured_repos(db: Session = Depends(get_db)):
 
 
 @app.get("/api/repos", response_model=list[TrackedRepoOut])
-def list_tracked_repos(db: Session = Depends(get_db)):
-    return list(db.execute(select(TrackedRepository).order_by(TrackedRepository.id)).scalars().all())
+def list_tracked_repos(
+    team: str | None = Query(None, description="团队标识（web3 / game）"),
+    db: Session = Depends(get_db),
+):
+    q = select(TrackedRepository).order_by(TrackedRepository.id)
+    if team:
+        q = q.where(TrackedRepository.team == team)
+    return list(db.execute(q).scalars().all())
 
 
 @app.post("/api/repos", response_model=TrackedRepoOut)
@@ -272,7 +281,7 @@ def add_tracked_repo(body: TrackedRepoCreate, db: Session = Depends(get_db)):
     dup = db.execute(select(TrackedRepository).where(TrackedRepository.full_name == fn)).scalars().first()
     if dup:
         raise HTTPException(409, detail="该仓库已在数据库列表中")
-    r = TrackedRepository(full_name=fn, notes=(body.notes or "").strip(), enabled=True)
+    r = TrackedRepository(full_name=fn, notes=(body.notes or "").strip(), team=body.team, enabled=True)
     db.add(r)
     db.commit()
     db.refresh(r)
@@ -304,7 +313,7 @@ def bulk_add_tracked_repos(body: RepoBulkCreate, db: Session = Depends(get_db)):
         if fn.lower() in existing:
             skipped.append(fn)
             continue
-        db.add(TrackedRepository(full_name=fn, notes="", enabled=True))
+        db.add(TrackedRepository(full_name=fn, notes="", team=body.team, enabled=True))
         existing.add(fn.lower())
         added.append(fn)
     db.commit()
@@ -324,6 +333,8 @@ def patch_tracked_repo(
         r.enabled = body.enabled
     if body.notes is not None:
         r.notes = body.notes.strip()
+    if body.team is not None:
+        r.team = body.team
     db.commit()
     db.refresh(r)
     return r
@@ -391,7 +402,7 @@ async def sync_commits(body: SyncRequest, db: Session = Depends(get_db)):
             except ValueError as e:
                 raise HTTPException(400, detail=f"仓库格式无效「{r}」: {e}") from e
     else:
-        repos = merged_sync_repos(db)
+        repos = merged_sync_repos(db, team=body.team)
     sync_id, n, err, contrib_n, warn = await run_sync(db, repos, body.since_days)
     return SyncResponse(
         sync_id=sync_id,
@@ -434,7 +445,7 @@ async def sync_commits_stream(body: SyncRequest):
                             )
                             return
                 else:
-                    repos = merged_sync_repos(db)
+                    repos = merged_sync_repos(db, team=body.team)
                 await run_sync(db, repos, body.since_days, on_progress=push)
             except Exception as e:  # noqa: BLE001
                 await push(
@@ -480,26 +491,39 @@ def _parse_date(s: str) -> date:
 
 
 @app.get("/api/reports/daily")
-def report_daily(d: str = Query(..., alias="date", description="YYYY-MM-DD，UTC 日界"), db: Session = Depends(get_db)):
-    return build_daily_report(db, _parse_date(d))
+def report_daily(
+    d: str = Query(..., alias="date", description="YYYY-MM-DD，UTC 日界"),
+    team: str | None = Query(None, description="团队标识（web3 / game）"),
+    db: Session = Depends(get_db),
+):
+    return build_daily_report(db, _parse_date(d), team=team)
 
 
 @app.get("/api/reports/daily.md", response_class=PlainTextResponse)
-def report_daily_md(d: str = Query(..., alias="date"), db: Session = Depends(get_db)):
-    return markdown_daily(build_daily_report(db, _parse_date(d)))
+def report_daily_md(
+    d: str = Query(..., alias="date"),
+    team: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    return markdown_daily(build_daily_report(db, _parse_date(d), team=team))
 
 
 @app.get("/api/reports/weekly")
 def report_weekly(
     week_start: str = Query(..., description="周起始日 YYYY-MM-DD（周一，UTC）"),
+    team: str | None = Query(None, description="团队标识（web3 / game）"),
     db: Session = Depends(get_db),
 ):
-    return build_weekly_report(db, _parse_date(week_start))
+    return build_weekly_report(db, _parse_date(week_start), team=team)
 
 
 @app.get("/api/reports/weekly.md", response_class=PlainTextResponse)
-def report_weekly_md(week_start: str = Query(...), db: Session = Depends(get_db)):
-    return markdown_weekly(build_weekly_report(db, _parse_date(week_start)))
+def report_weekly_md(
+    week_start: str = Query(...),
+    team: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    return markdown_weekly(build_weekly_report(db, _parse_date(week_start), team=team))
 
 
 def _check_alias_conflicts(

@@ -5,9 +5,9 @@ import { DateInput } from "../components/DateInput";
 import { RepoSourceBadge } from "../components/RepoSourceBadge";
 import { todayISO } from "../utils/date";
 
-type Props = { onError: (msg: string | null) => void };
+type Props = { onError: (msg: string | null) => void; team: string };
 
-export function DailyTab({ onError }: Props) {
+export function DailyTab({ onError, team }: Props) {
   const [dailyDate, setDailyDate] = useState(todayISO);
   const [daily, setDaily] = useState<DailyReport | null>(null);
   const [dailyMd, setDailyMd] = useState<string | null>(null);
@@ -18,8 +18,8 @@ export function DailyTab({ onError }: Props) {
     setDailyMd(null);
     try {
       const [j, md] = await Promise.all([
-        getJson<DailyReport>(`/api/reports/daily?date=${encodeURIComponent(dailyDate)}`),
-        fetch(`/api/reports/daily.md?date=${encodeURIComponent(dailyDate)}`).then((r) => r.text()),
+        getJson<DailyReport>(`/api/reports/daily?date=${encodeURIComponent(dailyDate)}&team=${encodeURIComponent(team)}`),
+        fetch(`/api/reports/daily.md?date=${encodeURIComponent(dailyDate)}&team=${encodeURIComponent(team)}`).then((r) => r.text()),
       ]);
       setDaily(j);
       setDailyMd(md);

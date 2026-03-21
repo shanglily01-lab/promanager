@@ -20,6 +20,7 @@ class TrackedRepository(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     full_name: Mapped[str] = mapped_column(String(255), index=True)
+    team: Mapped[str] = mapped_column(String(50), default="web3", nullable=False, index=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     notes: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(

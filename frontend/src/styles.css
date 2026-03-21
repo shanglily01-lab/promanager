@@ -78,6 +78,38 @@ header.app-header p {
   color: var(--warn);
 }
 
+.team-switcher {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.team-switcher button {
+  font-family: var(--font);
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  padding: 0.5rem 1.4rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.team-switcher button:hover {
+  color: var(--text);
+  border-color: var(--accent-dim);
+}
+
+.team-switcher button.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
 .tabs {
   display: flex;
   gap: 0.5rem;

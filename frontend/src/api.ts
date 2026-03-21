@@ -132,6 +132,7 @@ export type ContributorOut = {
 export type TrackedRepo = {
   id: number;
   full_name: string;
+  team: string;
   enabled: boolean;
   notes: string;
   created_at: string;
