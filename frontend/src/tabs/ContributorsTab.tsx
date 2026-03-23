@@ -13,6 +13,7 @@ function splitLines(s: string): string[] {
 
 export function ContributorsTab({ onError, team }: Props) {
   const [contributors, setContributors] = useState<ContributorOut[]>([]);
+  const [showForm, setShowForm] = useState(false);
   const [contribNick, setContribNick] = useState("");
   const [contribNotes, setContribNotes] = useState("");
   const [contribEmails, setContribEmails] = useState("");
@@ -31,9 +32,11 @@ export function ContributorsTab({ onError, team }: Props) {
     setContribEmails("");
     setContribLogins("");
     setEditingContribId(null);
+    setShowForm(false);
   };
 
   const startEditContributor = (c: ContributorOut) => {
+    setShowForm(true);
     setEditingContribId(c.id);
     setContribNick(c.nickname);
     setContribNotes(c.notes || "");
@@ -87,46 +90,60 @@ export function ContributorsTab({ onError, team }: Props) {
         同一人可绑定多个邮箱与 GitHub 登录；同步后的提交会按<strong>邮箱优先</strong>匹配到档案，报表主键为{" "}
         <code>contrib:编号</code>。未建档案时，仍按 GitHub 登录或 <code>email:地址</code> 分桶。
       </p>
-      <div className="row row--stretch">
-        <label className="field-grow">
-          昵称（展示名）
-          <input value={contribNick} onChange={(e) => setContribNick(e.target.value)} />
-        </label>
-      </div>
-      <label>
-        备注（可选）
-        <input value={contribNotes} onChange={(e) => setContribNotes(e.target.value)} />
-      </label>
-      <label>
-        邮箱（每行一个，或逗号分隔）
-        <textarea
-          value={contribEmails}
-          onChange={(e) => setContribEmails(e.target.value)}
-          placeholder={"zhang@company.com\nzhang@gmail.com"}
-          spellCheck={false}
-          className="textarea-short"
-        />
-      </label>
-      <label>
-        GitHub 登录（每行一个，小写）
-        <textarea
-          value={contribLogins}
-          onChange={(e) => setContribLogins(e.target.value)}
-          placeholder="zhangsan"
-          spellCheck={false}
-          className="textarea-compact"
-        />
-      </label>
-      <div className="row">
-        <button type="button" className="primary" onClick={saveContributor}>
-          {editingContribId != null ? "保存修改" : "新增成员"}
+
+      <div className="row" style={{ marginBottom: "0.75rem" }}>
+        <button
+          type="button"
+          className={showForm && editingContribId == null ? "ghost" : "secondary"}
+          onClick={() => { resetContribForm(); setShowForm((v) => !v); }}
+        >
+          {showForm && editingContribId == null ? "收起" : "+ 新增成员档案"}
         </button>
-        {editingContribId != null && (
-          <button type="button" className="ghost" onClick={resetContribForm}>
-            取消编辑
-          </button>
-        )}
       </div>
+
+      {showForm && (
+        <>
+          <div className="row row--stretch">
+            <label className="field-grow">
+              昵称（展示名）
+              <input value={contribNick} onChange={(e) => setContribNick(e.target.value)} />
+            </label>
+          </div>
+          <label>
+            备注（可选）
+            <input value={contribNotes} onChange={(e) => setContribNotes(e.target.value)} />
+          </label>
+          <label>
+            邮箱（每行一个，或逗号分隔）
+            <textarea
+              value={contribEmails}
+              onChange={(e) => setContribEmails(e.target.value)}
+              placeholder={"zhang@company.com\nzhang@gmail.com"}
+              spellCheck={false}
+              className="textarea-short"
+            />
+          </label>
+          <label>
+            GitHub 登录（每行一个，小写）
+            <textarea
+              value={contribLogins}
+              onChange={(e) => setContribLogins(e.target.value)}
+              placeholder="zhangsan"
+              spellCheck={false}
+              className="textarea-compact"
+            />
+          </label>
+          <div className="row">
+            <button type="button" className="primary" onClick={saveContributor}>
+              {editingContribId != null ? "保存修改" : "新增成员"}
+            </button>
+            <button type="button" className="ghost" onClick={resetContribForm}>
+              取消
+            </button>
+          </div>
+        </>
+      )}
+
       <h2 className="subsection-title">已有档案</h2>
       <div className="employee-grid">
         {contributors.map((c) => (
