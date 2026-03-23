@@ -371,10 +371,12 @@ def _commit_one_mirror(db: Session, full_name: str, status: str, detail: str, re
             pass
 
 
-def run_mirror_scan_db(db: Session, repos_filter: list[str] | None = None) -> None:
+def run_mirror_scan_db(
+    db: Session, repos_filter: list[str] | None = None, team: str | None = None
+) -> None:
     """顺序扫描并 commit 每条；调用方已持有扫描锁。"""
     if not git_on_path():
-        targets = repos_filter if repos_filter else merged_sync_repos(db)
+        targets = repos_filter if repos_filter else merged_sync_repos(db, team=team)
         for fn in targets:
             try:
                 rel = mirror_rel_path(fn)
@@ -383,7 +385,7 @@ def run_mirror_scan_db(db: Session, repos_filter: list[str] | None = None) -> No
             _commit_one_mirror(db, fn, "error", "系统未安装 git 或不在 PATH 中", rel)
         return
 
-    targets = repos_filter if repos_filter else merged_sync_repos(db)
+    targets = repos_filter if repos_filter else merged_sync_repos(db, team=team)
     for fn in targets:
         try:
             status, detail, rel = mirror_one(fn)

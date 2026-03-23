@@ -70,12 +70,12 @@ from app.services.sync_service import run_sync
 from app.services.habit_change_service import analyze_habit_changes
 
 
-def _mirror_scan_background(repos: list[str] | None) -> None:
+def _mirror_scan_background(repos: list[str] | None, team: str | None = None) -> None:
     """在独立线程中执行；任何未捕获异常都会污染 uvicorn ASGI 日志，故整体包一层。"""
     try:
         db = SessionLocal()
         try:
-            run_mirror_scan_db(db, repos_filter=repos)
+            run_mirror_scan_db(db, repos_filter=repos, team=team)
         except Exception:  # noqa: BLE001
             logging.exception("仓库中心后台扫描失败（已回滚当前会话）")
             try:
@@ -244,7 +244,7 @@ def repo_mirrors_scan(
     if not try_begin_scan():
         raise HTTPException(status_code=409, detail="已有本地拉取任务在执行，请稍后再试")
     repos = body.repos if body.repos else None
-    background_tasks.add_task(_mirror_scan_background, repos)
+    background_tasks.add_task(_mirror_scan_background, repos, body.team)
     return RepoMirrorScanStarted()
 
 

@@ -112,6 +112,7 @@ class RepoMirrorScanRequest(BaseModel):
         default_factory=list,
         description="要检测的仓库列表；空则使用「数据库已启用 + .env / REPOS_FILE」合并列表",
     )
+    team: str | None = None
 
 
 class RepoMirrorScanStarted(BaseModel):

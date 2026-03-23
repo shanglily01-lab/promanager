@@ -61,7 +61,7 @@ export function RepoMirrorsTab({ onError, team }: Props) {
   const startScan = async (repos?: string[]) => {
     onError(null);
     try {
-      await postJson<{ started: boolean }>("/api/repo-mirrors/scan", { repos: repos ?? [] });
+      await postJson<{ started: boolean }>("/api/repo-mirrors/scan", { repos: repos ?? [], team });
       setScanning(true);
       await load();
     } catch (e) {
