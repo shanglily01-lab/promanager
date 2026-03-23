@@ -1,7 +1,10 @@
 """从本地 git 仓库镜像同步提交记录（通过 SSH 隧道访问的自建 Git 服务）。
 
-仓库命名约定：tracked_repos.full_name 使用 "gitlocal:server/dezhou" 格式。
-镜像路径：{REPO_MIRROR_ROOT}/{最后一段路径}，如 gitlocal:server/dezhou → {root}/dezhou
+仓库命名约定：tracked_repos.full_name 使用 "gitlocal:host:port/org/repo" 格式。
+例：gitlocal:localhost:20022/server/dezhou
+  → 远端 URL: ssh://git@localhost:20022/server/dezhou.git
+  → 镜像路径: {REPO_MIRROR_ROOT}/dezhou
+首次同步时若本地镜像不存在，会自动 git clone。
 """
 from __future__ import annotations
 
@@ -39,10 +42,35 @@ def is_gitlocal_repo(repo: str) -> bool:
     return repo.startswith("gitlocal:")
 
 
+def _parse_gitlocal(repo: str) -> tuple[str, int, str]:
+    """
+    gitlocal:localhost:20022/server/dezhou → ("localhost", 20022, "server/dezhou")
+    """
+    rest = repo.removeprefix("gitlocal:")
+    # rest = "localhost:20022/server/dezhou"
+    if ":" not in rest:
+        raise ValueError(f"gitlocal 格式应为 gitlocal:host:port/org/repo，收到: {repo}")
+    host, port_and_path = rest.split(":", 1)
+    if "/" not in port_and_path:
+        raise ValueError(f"gitlocal 格式缺少路径部分: {repo}")
+    port_str, path = port_and_path.split("/", 1)
+    try:
+        port = int(port_str)
+    except ValueError:
+        raise ValueError(f"gitlocal 端口不是数字: {port_str}") from None
+    return host, port, path
+
+
+def gitlocal_remote_url(repo: str) -> str:
+    """gitlocal:localhost:20022/server/dezhou → ssh://git@localhost:20022/server/dezhou.git"""
+    host, port, path = _parse_gitlocal(repo)
+    return f"ssh://git@{host}:{port}/{path}.git"
+
+
 def gitlocal_mirror_path(repo: str, mirror_root: Path) -> Path:
-    """gitlocal:server/dezhou → {mirror_root}/dezhou"""
-    name = repo.removeprefix("gitlocal:")
-    slug = name.split("/")[-1]
+    """gitlocal:localhost:20022/server/dezhou → {mirror_root}/dezhou"""
+    _, _, path = _parse_gitlocal(repo)
+    slug = path.split("/")[-1]
     return mirror_root / slug
 
 
@@ -110,16 +138,26 @@ def fetch_gitlocal_commits_normalized(
     2. git log 解析 → normalized commit dicts
     """
     mirror_path = gitlocal_mirror_path(repo, mirror_root)
-    if not mirror_path.is_dir():
-        raise RuntimeError(
-            f"本地镜像不存在: {mirror_path}，请先执行 git clone（通过 SSH 隧道）"
-        )
-
     env = _ssh_env(ssh_key)
-    try:
-        _run(["git", "fetch", "--all", "--prune"], mirror_path, env=env, timeout=120)
-    except RuntimeError as e:
-        raise RuntimeError(f"git fetch 失败（SSH 隧道是否在运行？）: {e}") from e
+
+    if not mirror_path.is_dir():
+        # 首次同步：自动 clone
+        remote_url = gitlocal_remote_url(repo)
+        mirror_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            _run(
+                ["git", "clone", remote_url, str(mirror_path)],
+                mirror_path.parent,
+                env=env,
+                timeout=300,
+            )
+        except RuntimeError as e:
+            raise RuntimeError(f"git clone 失败（SSH 隧道是否在运行？）: {e}") from e
+    else:
+        try:
+            _run(["git", "fetch", "--all", "--prune"], mirror_path, env=env, timeout=120)
+        except RuntimeError as e:
+            raise RuntimeError(f"git fetch 失败（SSH 隧道是否在运行？）: {e}") from e
 
     since_str = since.strftime("%Y-%m-%dT%H:%M:%S")
     log_out = _run(

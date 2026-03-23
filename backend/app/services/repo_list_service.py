@@ -37,10 +37,11 @@ def normalize_repo_full_name(raw: str) -> str:
     if not s:
         raise ValueError("仓库不能为空")
     if is_gitlocal_repo(s):
-        # gitlocal:server/dezhou — 保留原样，只做基本格式检查
-        path = s.removeprefix("gitlocal:").strip()
-        if not path or "/" not in path:
-            raise ValueError("gitlocal 格式应为 gitlocal:组织/仓库名，例如 gitlocal:server/dezhou")
+        try:
+            from app.services.git_local_sync_service import _parse_gitlocal
+            _parse_gitlocal(s)  # 格式校验
+        except ValueError as e:
+            raise ValueError(str(e)) from e
         return s
     if is_codecommit_repo(s):
         p = parse_codecommit_ref(s)
