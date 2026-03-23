@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.codecommit_client import is_codecommit_repo, parse_codecommit_ref
 from app.config import settings
 from app.models import RepoMirrorState
+from app.services.git_local_sync_service import is_gitlocal_repo, gitlocal_mirror_path
 from app.services.repo_list_service import merged_sync_repos
 
 _GITHUB_NAME_RE = re.compile(r"^[\w.-]+/[\w.-]+$")
@@ -77,6 +78,9 @@ def _git_env_for_codecommit() -> dict[str, str]:
 
 
 def mirror_rel_path(full_name: str) -> str:
+    if is_gitlocal_repo(full_name):
+        mirror = gitlocal_mirror_path(full_name, settings.repo_mirror_root_path)
+        return str(mirror.relative_to(settings.repo_mirror_root_path)).replace("\\", "/")
     if is_codecommit_repo(full_name):
         parsed = parse_codecommit_ref(full_name)
         if not parsed:
@@ -202,6 +206,13 @@ def mirror_one(full_name: str) -> tuple[str, str, str]:
 
         if not git_on_path():
             return "error", "系统未安装 git 或不在 PATH 中", rel
+
+        if is_gitlocal_repo(fn):
+            # gitlocal 镜像由同步时自动管理，仓库中心只展示状态
+            mirror = gitlocal_mirror_path(fn, settings.repo_mirror_root_path)
+            if (mirror / ".git").is_dir():
+                return "ok", "gitlocal 镜像已就绪（通过同步管理）", rel
+            return "skipped", "gitlocal 镜像尚未创建，请先执行同步", rel
 
         if is_codecommit_repo(fn):
             parsed = parse_codecommit_ref(fn)
