@@ -140,13 +140,18 @@ def fetch_gitlocal_commits_normalized(
     mirror_path = gitlocal_mirror_path(repo, mirror_root)
     env = _ssh_env(ssh_key)
 
-    if not mirror_path.is_dir():
-        # 首次同步：自动 clone
+    is_git_repo = (mirror_path / ".git").is_dir()
+    if not is_git_repo:
+        # 首次同步：自动 clone（若目录已存在但不是 git repo 则先删除）
+        import shutil
+        if mirror_path.exists():
+            shutil.rmtree(mirror_path)
         remote_url = gitlocal_remote_url(repo)
         mirror_path.parent.mkdir(parents=True, exist_ok=True)
         try:
+            # CWD = mirror_path.parent，故目标只传目录名
             _run(
-                ["git", "clone", remote_url, str(mirror_path)],
+                ["git", "clone", remote_url, mirror_path.name],
                 mirror_path.parent,
                 env=env,
                 timeout=300,
