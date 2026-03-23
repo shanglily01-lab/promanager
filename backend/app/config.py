@@ -67,6 +67,11 @@ class Settings(BaseSettings):
     db_user: str = ""
     db_password: str = ""
     db_name: str = ""
+    # 本地 Git 隧道：SSH 私钥路径（用于 git fetch gitlocal: 仓库，隧道须单独保持运行）
+    gitlocal_ssh_key_path: str = Field(
+        default="",
+        validation_alias=AliasChoices("GITLOCAL_SSH_KEY_PATH", "gitlocal_ssh_key_path"),
+    )
     # AWS 区域（CodeCommit 列举仓库；与 .env 中 AWS_DEFAULT_REGION 一致）
     aws_default_region: str = Field(
         default="",

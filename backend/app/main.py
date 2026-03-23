@@ -408,7 +408,7 @@ async def sync_commits(body: SyncRequest, db: Session = Depends(get_db)):
                 raise HTTPException(400, detail=f"仓库格式无效「{r}」: {e}") from e
     else:
         repos = merged_sync_repos(db, team=body.team)
-    sync_id, n, err, contrib_n, warn = await run_sync(db, repos, body.since_days)
+    sync_id, n, err, contrib_n, warn = await run_sync(db, repos, body.since_days, team=body.team or "web3")
     return SyncResponse(
         sync_id=sync_id,
         commits_fetched=n,
@@ -451,7 +451,7 @@ async def sync_commits_stream(body: SyncRequest):
                             return
                 else:
                     repos = merged_sync_repos(db, team=body.team)
-                await run_sync(db, repos, body.since_days, on_progress=push)
+                await run_sync(db, repos, body.since_days, team=body.team or "web3", on_progress=push)
             except Exception as e:  # noqa: BLE001
                 await push(
                     {
@@ -569,6 +569,7 @@ def _contributor_to_out(c: Contributor) -> ContributorOut:
         id=c.id,
         nickname=c.nickname,
         notes=c.notes or "",
+        team=c.team,
         aliases=[
             ContributorAliasOut(id=a.id, kind=a.kind, value_normalized=a.value_normalized)
             for a in sorted(c.aliases, key=lambda x: (x.kind, x.value_normalized))

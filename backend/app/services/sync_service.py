@@ -18,6 +18,10 @@ from app.config import settings
 from app.github_client import GitHubClient
 from app.models import CommitRecord, SyncLog
 from app.services.commit_style_analyzer import analyze_github_commit_detail
+from app.services.git_local_sync_service import (
+    fetch_gitlocal_commits_normalized,
+    is_gitlocal_repo,
+)
 from app.services.identity_service import provision_contributors_from_normalized
 
 ProgressEmitter = Callable[[dict[str, Any]], Awaitable[None]]
@@ -33,6 +37,7 @@ async def run_sync(
     repos: list[str],
     since_days: int,
     *,
+    team: str = "web3",
     on_progress: ProgressEmitter | None = None,
 ) -> tuple[int, int, str | None, int, str | None]:
     """
@@ -70,7 +75,12 @@ async def run_sync(
     n_repos = len(repos)
     for idx, repo in enumerate(repos):
         r = repo.strip()
-        kind = "codecommit" if is_codecommit_repo(r) else "github"
+        if is_gitlocal_repo(r):
+            kind = "gitlocal"
+        elif is_codecommit_repo(r):
+            kind = "codecommit"
+        else:
+            kind = "github"
         await _emit(
             on_progress,
             "repo_fetch_start",
@@ -80,7 +90,26 @@ async def run_sync(
             kind=kind,
         )
         try:
-            if is_codecommit_repo(r):
+            if is_gitlocal_repo(r):
+                from pathlib import Path
+                mirror_root = Path(settings.repo_mirror_root)
+                ssh_key = settings.gitlocal_ssh_key_path or None
+                chunk = await asyncio.to_thread(
+                    fetch_gitlocal_commits_normalized,
+                    r,
+                    mirror_root,
+                    since,
+                    ssh_key,
+                )
+                normalized.extend(chunk)
+                await _emit(
+                    on_progress,
+                    "repo_fetch_done",
+                    repo=r,
+                    commits=len(chunk),
+                    kind=kind,
+                )
+            elif is_codecommit_repo(r):
                 parsed = parse_codecommit_ref(r)
                 if not parsed:
                     raise ValueError(f"无效的 CodeCommit 仓库格式: {r}")
@@ -190,11 +219,12 @@ async def run_sync(
             )
             if exists:
                 continue
-            style_blob: str | None = None
-            if (
+            style_blob: str | None = norm.get("commit_style_json")
+            if style_blob is None and (
                 settings.github_commit_style_fetch_enabled
                 and style_fetch_budget > 0
                 and not is_codecommit_repo(norm["repo_full_name"])
+                and not is_gitlocal_repo(norm["repo_full_name"])
             ):
                 style_fetch_budget -= 1
                 style_fetch_count += 1
@@ -229,7 +259,7 @@ async def run_sync(
                     of=n_norm,
                 )
         await _emit(on_progress, "provision_start")
-        n_provisioned = provision_contributors_from_normalized(db, normalized)
+        n_provisioned = provision_contributors_from_normalized(db, normalized, team=team)
         await _emit(on_progress, "provision_done", contributors_created=n_provisioned)
         db.commit()
         log.finished_at = datetime.now(timezone.utc)

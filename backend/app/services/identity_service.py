@@ -183,6 +183,7 @@ def provision_contributor_if_missing(
     author_login: str | None,
     author_email: str | None,
     author_name: str | None,
+    team: str = "web3",
 ) -> bool:
     """
     若邮箱或登录尚未绑定任何成员档案，则新建 Contributor 并写入别名。
@@ -203,7 +204,7 @@ def provision_contributor_if_missing(
         nick = email.split("@", 1)[0] if email else (login or "成员")
     nick = nick[:128] or "成员"
 
-    c = Contributor(nickname=nick, notes="同步自动创建")
+    c = Contributor(nickname=nick, notes="同步自动创建", team=team)
     db.add(c)
     db.flush()
     if email:
@@ -213,7 +214,9 @@ def provision_contributor_if_missing(
     return True
 
 
-def provision_contributors_from_normalized(db: Session, normalized_commits: list[dict[str, Any]]) -> int:
+def provision_contributors_from_normalized(
+    db: Session, normalized_commits: list[dict[str, Any]], team: str = "web3"
+) -> int:
     from app.config import settings
 
     if not settings.auto_provision_contributors or not normalized_commits:
@@ -229,7 +232,7 @@ def provision_contributors_from_normalized(db: Session, normalized_commits: list
             continue
         seen.add(key)
         if provision_contributor_if_missing(
-            db, author_login=login, author_email=email, author_name=name
+            db, author_login=login, author_email=email, author_name=name, team=team
         ):
             created += 1
     return created

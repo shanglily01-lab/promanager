@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.codecommit_client import is_codecommit_repo, parse_codecommit_ref
 from app.config import settings
 from app.models import TrackedRepository
+from app.services.git_local_sync_service import is_gitlocal_repo
 
 # GitHub owner/name：宽松校验（含 . - _）
 _REPO_RE = re.compile(r"^[\w.-]+/[\w.-]+$")
@@ -35,6 +36,12 @@ def normalize_repo_full_name(raw: str) -> str:
     s = raw.strip()
     if not s:
         raise ValueError("仓库不能为空")
+    if is_gitlocal_repo(s):
+        # gitlocal:server/dezhou — 保留原样，只做基本格式检查
+        path = s.removeprefix("gitlocal:").strip()
+        if not path or "/" not in path:
+            raise ValueError("gitlocal 格式应为 gitlocal:组织/仓库名，例如 gitlocal:server/dezhou")
+        return s
     if is_codecommit_repo(s):
         p = parse_codecommit_ref(s)
         if not p:

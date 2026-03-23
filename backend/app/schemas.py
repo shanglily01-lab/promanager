@@ -178,7 +178,7 @@ class ContributorOut(BaseModel):
     id: int
     nickname: str
     notes: str
-    team: str = "web3"
+    team: str
     aliases: list[ContributorAliasOut]
 
 
