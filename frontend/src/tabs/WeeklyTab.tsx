@@ -29,9 +29,9 @@ export function WeeklyTab({ onError, team }: Props) {
   };
 
   return (
-    <section className="card tab-panel" aria-labelledby="weekly-heading">
-      <h2 id="weekly-heading">周报（周一起算，UTC）</h2>
-      <p className="card-hint">时间范围按 <strong>UTC</strong>；需先同步提交后再点「生成」。</p>
+    <div>
+      <div className="page-header"><h2 className="page-title">周报</h2></div>
+      <p className="card-hint" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>时间范围按 <strong>UTC</strong>；需先同步提交后再点「生成」。</p>
       <div className="row">
         <label>
           周起始（周一）
@@ -105,6 +105,6 @@ export function WeeklyTab({ onError, team }: Props) {
           <pre className="md">{weeklyMd}</pre>
         </details>
       )}
-    </section>
+    </div>
   );
 }

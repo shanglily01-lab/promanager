@@ -73,9 +73,11 @@ export function RepoMirrorsTab({ onError, team }: Props) {
   const errCount = data?.items.filter((i) => i.status === "error").length ?? 0;
 
   return (
-    <section className="card tab-panel" aria-labelledby="repo-mirrors-heading">
-      <h2 id="repo-mirrors-heading">仓库中心</h2>
-      <p className="card-hint">
+    <div>
+      <div className="page-header">
+        <h2 className="page-title">仓库中心</h2>
+      </div>
+      <p className="card-hint" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
         将<strong>合并后的仓库列表</strong>（与「同步」页相同来源）尝试 <code>git clone</code> /{" "}
         <code>git fetch</code> 到本机目录，用于检查凭证与网络是否能把代码拉回本地。GitHub 无 Token 时仅适合公开库；CodeCommit 依赖本机{" "}
         <code>aws</code> CLI 与凭证。
@@ -85,7 +87,7 @@ export function RepoMirrorsTab({ onError, team }: Props) {
         <button type="button" className="primary" disabled={loading || scanning} onClick={() => startScan()}>
           {scanning ? "拉取任务进行中…" : "检测并拉取全部仓库"}
         </button>
-        <button type="button" className="secondary" disabled={loading} onClick={() => void load()}>
+        <button type="button" className="ghost" disabled={loading} onClick={() => void load()}>
           刷新列表
         </button>
       </div>
@@ -160,6 +162,6 @@ export function RepoMirrorsTab({ onError, team }: Props) {
           </table>
         </div>
       ) : null}
-    </section>
+    </div>
   );
 }

@@ -147,9 +147,11 @@ export function EmployeeTab({ onError, team }: Props) {
   };
 
   return (
-    <section className="card tab-panel" aria-labelledby="employee-heading">
-      <h2 id="employee-heading">单人：提交列表与习惯</h2>
-      <p className="card-hint">
+    <div>
+      <div className="page-header">
+        <h2 className="page-title">员工分析</h2>
+      </div>
+      <p className="card-hint" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
         主键与日报一致。下方可先<strong>按成员昵称</strong>选择（实际仍使用内部主键查询）；也可在输入框中直接填写{" "}
         <code>GitHub登录</code>、<code>email:邮箱</code>、<code>contrib:档案ID</code>、<code>_unknown</code>。
       </p>
@@ -353,6 +355,6 @@ export function EmployeeTab({ onError, team }: Props) {
           </table>
         </div>
       )}
-    </section>
+    </div>
   );
 }

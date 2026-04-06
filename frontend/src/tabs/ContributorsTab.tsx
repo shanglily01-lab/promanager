@@ -84,9 +84,11 @@ export function ContributorsTab({ onError, team }: Props) {
   };
 
   return (
-    <section className="card tab-panel" aria-labelledby="contrib-heading">
-      <h2 id="contrib-heading">成员档案（昵称 / 备注 / 绑定邮箱与 GitHub）</h2>
-      <p className="card-hint">
+    <div>
+      <div className="page-header">
+        <h2 className="page-title">成员档案</h2>
+      </div>
+      <p className="card-hint" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
         同一人可绑定多个邮箱与 GitHub 登录；同步后的提交会按<strong>邮箱优先</strong>匹配到档案，报表主键为{" "}
         <code>contrib:编号</code>。未建档案时，仍按 GitHub 登录或 <code>email:地址</code> 分桶。
       </p>
@@ -94,7 +96,7 @@ export function ContributorsTab({ onError, team }: Props) {
       <div className="row" style={{ marginBottom: "0.75rem" }}>
         <button
           type="button"
-          className={showForm && editingContribId == null ? "ghost" : "secondary"}
+          className={showForm && editingContribId == null ? "ghost" : "primary"}
           onClick={() => { resetContribForm(); setShowForm((v) => !v); }}
         >
           {showForm && editingContribId == null ? "收起" : "+ 新增成员档案"}
@@ -170,7 +172,7 @@ export function ContributorsTab({ onError, team }: Props) {
           </div>
         ))}
       </div>
-      {contributors.length === 0 && <p className="card-hint">暂无档案，可在上方新增。</p>}
-    </section>
+      {contributors.length === 0 && <p className="card-hint" style={{ padding: "0 1rem" }}>暂无档案，可在上方新增。</p>}
+    </div>
   );
 }
