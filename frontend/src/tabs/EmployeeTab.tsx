@@ -35,7 +35,6 @@ export function EmployeeTab({ onError, team }: Props) {
   const [employeeKeyOptions, setEmployeeKeyOptions] = useState<{ key: string; label: string }[]>([]);
 
   // Habit change detection state
-  const [hcLogin, setHcLogin] = useState("");
   const [hcP2From, setHcP2From] = useState("");
   const [hcP2To, setHcP2To] = useState("");
   const [hcReport, setHcReport] = useState<HabitChangeReport | null>(null);
@@ -94,9 +93,9 @@ export function EmployeeTab({ onError, team }: Props) {
   const loadHabitChange = async () => {
     onError(null);
     setHcReport(null);
-    const key = hcLogin.trim() || empLogin.trim();
+    const key = empLogin.trim();
     if (!key) {
-      onError("请先填写成员主键");
+      onError("请先选择成员");
       return;
     }
     if (!empFrom || !empTo) {
@@ -144,7 +143,7 @@ export function EmployeeTab({ onError, team }: Props) {
       <div className="page-header">
         <h2 className="page-title">员工分析</h2>
       </div>
-      <div className="row row--employee-filters">
+      <div className="row row--tight" style={{ padding: "0 1rem" }}>
         <label>
           成员
           <select
@@ -161,8 +160,10 @@ export function EmployeeTab({ onError, team }: Props) {
             ))}
           </select>
         </label>
+      </div>
+      <div className="row row--tight" style={{ padding: "0 1rem" }}>
         <label>
-          从
+          前期 从
           <DateInput value={empFrom} onChange={setEmpFrom} aria-label="提交区间开始日期" />
         </label>
         <label>
@@ -240,36 +241,17 @@ export function EmployeeTab({ onError, team }: Props) {
 
       {/* ── 习惯变化检测 ─────────────────────────────── */}
       <h2 className="subsection-title">习惯变化检测</h2>
-      <div className="hc-form">
+      <div className="row row--tight" style={{ padding: "0 1rem" }}>
         <label>
-          成员（可选，默认同上）
-          <select
-            aria-label="按成员名称选择（习惯对比）"
-            value={employeeKeyOptions.some((o) => o.key === hcLogin) ? hcLogin : ""}
-            onChange={(e) => setHcLogin(e.target.value)}
-            style={{ width: "auto", minWidth: "9rem", maxWidth: "16rem" }}
-          >
-            <option value="">同上方选择</option>
-            {employeeKeyOptions.map((o) => (
-              <option key={o.key} value={o.key}>{o.label}</option>
-            ))}
-          </select>
+          后期 从
+          <DateInput value={hcP2From} onChange={setHcP2From} aria-label="后期开始日期" />
         </label>
-        <div className="hc-periods">
-          <fieldset className="hc-period">
-            <legend>后期</legend>
-            <label>
-              从
-              <DateInput value={hcP2From} onChange={setHcP2From} aria-label="后期开始日期" />
-            </label>
-            <label>
-              到
-              <DateInput value={hcP2To} onChange={setHcP2To} aria-label="后期结束日期" />
-            </label>
-          </fieldset>
-        </div>
+        <label>
+          到
+          <DateInput value={hcP2To} onChange={setHcP2To} aria-label="后期结束日期" />
+        </label>
         <button type="button" className="primary" disabled={hcLoading} onClick={loadHabitChange}>
-          {hcLoading ? "分析中…" : "分析习惯变化"}
+          {hcLoading ? "分析中…" : "对比"}
         </button>
       </div>
 
