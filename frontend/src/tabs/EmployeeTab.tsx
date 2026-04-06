@@ -145,13 +145,13 @@ export function EmployeeTab({ onError, team }: Props) {
         <h2 className="page-title">员工分析</h2>
       </div>
       <div className="row row--employee-filters">
-        <label className="field-key">
+        <label>
           成员
           <select
             aria-label="按成员名称选择"
             value={empLogin}
             onChange={(e) => setEmpLogin(e.target.value)}
-            className="select-key"
+            style={{ width: "auto", minWidth: "9rem", maxWidth: "16rem" }}
           >
             <option value="">选择成员…</option>
             {employeeKeyOptions.map((o) => (
@@ -241,13 +241,13 @@ export function EmployeeTab({ onError, team }: Props) {
       {/* ── 习惯变化检测 ─────────────────────────────── */}
       <h2 className="subsection-title">习惯变化检测</h2>
       <div className="hc-form">
-        <label className="hc-key-label">
+        <label>
           成员（可选，默认同上）
           <select
             aria-label="按成员名称选择（习惯对比）"
             value={employeeKeyOptions.some((o) => o.key === hcLogin) ? hcLogin : ""}
             onChange={(e) => setHcLogin(e.target.value)}
-            className="select-key"
+            style={{ width: "auto", minWidth: "9rem", maxWidth: "16rem" }}
           >
             <option value="">同上方选择</option>
             {employeeKeyOptions.map((o) => (
