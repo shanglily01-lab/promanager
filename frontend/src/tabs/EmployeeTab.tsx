@@ -219,7 +219,7 @@ export function EmployeeTab({ onError, team }: Props) {
                 Conventional Commits 约 <strong>{empHabits.pct_conventional_commits ?? 0}%</strong>
                 {(empHabits.commits_with_style_sample ?? 0) > 0
                   ? ` · 含文件画像的提交 ${empHabits.commits_with_style_sample} 条`
-                  : " · 尚无文件级画像（需开启同步时的详情拉取并重新同步新提交）"}
+                  : <span className="mobile-hide"> · 尚无文件级画像（需开启同步时的详情拉取并重新同步新提交）</span>}
               </div>
               {(empHabits.commit_message_tags ?? []).length > 0 && (
                 <>
@@ -268,7 +268,7 @@ export function EmployeeTab({ onError, team }: Props) {
 
       {/* ── 习惯变化检测 ─────────────────────────────── */}
       <h2 className="subsection-title">习惯变化检测</h2>
-      <p className="card-hint">
+      <p className="card-hint mobile-hide">
         以上方选择的日期范围为<strong>前期</strong>，再指定一个<strong>后期</strong>，对比两段时间的提交习惯变化。
         成员主键默认使用上方已选主键，也可在此单独填写。
       </p>
@@ -329,30 +329,32 @@ export function EmployeeTab({ onError, team }: Props) {
             <span className="hc-vs">vs</span>
             后期 {hcReport.period2_from} ~ {hcReport.period2_to}（{hcReport.period2_commits} 次提交）
           </div>
-          <table className="hc-table">
-            <thead>
-              <tr>
-                <th>维度</th>
-                <th>前期</th>
-                <th>后期</th>
-                <th>趋势</th>
-                <th>结论</th>
-              </tr>
-            </thead>
-            <tbody>
-              {hcReport.changes.map((item) => (
-                <tr key={item.dimension} className={item.significant ? "hc-row--significant" : ""}>
-                  <td className="hc-dim">{item.dimension}</td>
-                  <td className="hc-before">{item.before_desc}</td>
-                  <td className="hc-after">{item.after_desc}</td>
-                  <td className="hc-trend" data-trend={item.trend}>
-                    {trendIcon(item.trend)}
-                  </td>
-                  <td className="hc-conclusion">{item.conclusion}</td>
+          <div className="hc-table-wrap">
+            <table className="hc-table">
+              <thead>
+                <tr>
+                  <th>维度</th>
+                  <th>前期</th>
+                  <th>后期</th>
+                  <th>趋势</th>
+                  <th>结论</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {hcReport.changes.map((item) => (
+                  <tr key={item.dimension} className={item.significant ? "hc-row--significant" : ""}>
+                    <td className="hc-dim">{item.dimension}</td>
+                    <td className="hc-before">{item.before_desc}</td>
+                    <td className="hc-after">{item.after_desc}</td>
+                    <td className="hc-trend" data-trend={item.trend}>
+                      {trendIcon(item.trend)}
+                    </td>
+                    <td className="hc-conclusion">{item.conclusion}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

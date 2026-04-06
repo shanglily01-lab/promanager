@@ -123,9 +123,9 @@ export function RepoMirrorsTab({ onError, team }: Props) {
               <tr>
                 <th>仓库</th>
                 <th>状态</th>
-                <th>相对路径</th>
-                <th>说明 / 错误</th>
-                <th>更新时间</th>
+                <th className="mobile-hide">相对路径</th>
+                <th className="mobile-hide">说明 / 错误</th>
+                <th className="mobile-hide">更新时间</th>
                 <th />
               </tr>
             </thead>
@@ -141,11 +141,11 @@ export function RepoMirrorsTab({ onError, team }: Props) {
                   <td>
                     <span className={`mirror-status ${statusClass(row.status)}`}>{row.status}</span>
                   </td>
-                  <td>
+                  <td className="mobile-hide">
                     <code className="code-inline code-tiny">{row.local_rel_path}</code>
                   </td>
-                  <td className="mirror-detail">{row.detail || "—"}</td>
-                  <td className="mirror-time">{row.updated_at ? row.updated_at.slice(0, 19).replace("T", " ") : "—"}</td>
+                  <td className="mirror-detail mobile-hide">{row.detail || "—"}</td>
+                  <td className="mirror-time mobile-hide">{row.updated_at ? row.updated_at.slice(0, 19).replace("T", " ") : "—"}</td>
                   <td>
                     <button
                       type="button"

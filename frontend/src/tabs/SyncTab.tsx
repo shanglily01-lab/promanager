@@ -317,8 +317,8 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion, team }: Pro
         也可配合 <code>DEFAULT_REPOS</code> / <code>REPOS_FILE</code>，<strong>合并去重</strong>。
       </p>
 
-      <h3 className="section-title">数据库中的仓库</h3>
-      <p className="card-hint card-hint--tight">
+      <h3 className="section-title">仓库列表</h3>
+      <p className="card-hint card-hint--tight mobile-hide">
         每行一个：<code>owner/repo</code>、GitHub 链接，或 CodeCommit{" "}
         <code>cc:ap-southeast-1/my-repo</code> / <code>cc:ap-southeast-1/my-repo@prod</code>。
       </p>
@@ -461,19 +461,19 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion, team }: Pro
       )}
       <div className="row">
         <label>
-          回溯天数（默认 15；GitHub 按 API 时间过滤；CodeCommit 沿默认/指定分支第一父链回溯；后台定时同步用 .env
-          DEFAULT_SINCE_DAYS）
+          回溯天数
           <input
             type="number"
             min={1}
             max={365}
             value={sinceDays}
             onChange={(e) => setSinceDays(Number(e.target.value))}
+            style={{ width: "5rem" }}
           />
         </label>
       </div>
-      <label>
-        仓库列表（手动覆盖；留空并点「同步已配置」则用服务器列表）
+      <label style={{ padding: "0 1rem", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+        <span className="mobile-hide" style={{ fontSize: "0.75rem", color: "var(--muted)" }}>手动覆盖仓库列表（留空则用服务器列表）</span>
         <textarea
           value={reposInput}
           onChange={(e) => setReposInput(e.target.value)}
@@ -497,7 +497,7 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion, team }: Pro
               <div style={{ width: `${Math.min(100, (100 * syncBar.current) / Math.max(1, syncBar.total))}%` }} />
             </div>
           ) : null}
-          {syncing ? <p className="sync-wait-hint">单个大库或 GitHub 限流时，某一仓库可能停留较久；下方日志会持续更新，请勿关闭页面。</p> : null}
+          {syncing ? <p className="sync-wait-hint mobile-hide">单个大库或 GitHub 限流时，某一仓库可能停留较久；下方日志会持续更新，请勿关闭页面。</p> : null}
           {syncLines.length > 0 ? <pre className="sync-progress-log">{syncLines.join("\n")}</pre> : null}
         </div>
       )}
@@ -508,11 +508,7 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion, team }: Pro
         {syncMsg && <span className="inline-msg">{syncMsg}</span>}
       </div>
 
-      <h3 className="section-title section-title--spaced">最近同步记录（全站共享）</h3>
-      <p className="card-hint card-hint--tight">
-        上面的「滚动日志」只在你<strong>当前浏览器</strong>里，通过<strong>单次同步的实时连接</strong>推送，别人看不到。
-        下表来自服务器数据库，所有访问<strong>同一套后端</strong>的同事都能看到每次同步的摘要。
-      </p>
+      <h3 className="section-title section-title--spaced">最近同步记录</h3>
       <div className="row row--tight">
         <button type="button" className="ghost" disabled={syncing} onClick={() => void loadSyncHistory()}>
           刷新同步记录
@@ -525,33 +521,27 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion, team }: Pro
           <table className="sync-history-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>开始时间</th>
-                <th>结束</th>
+                <th>时间</th>
                 <th>状态</th>
-                <th>仓库数</th>
-                <th>新提交</th>
-                <th>备注</th>
+                <th>仓库</th>
+                <th>提交</th>
+                <th className="mobile-hide">备注</th>
               </tr>
             </thead>
             <tbody>
               {syncHistory.map((r) => (
                 <tr key={r.id}>
-                  <td>{r.id}</td>
-                  <td>{new Date(r.started_at).toLocaleString()}</td>
-                  <td>{r.finished_at ? new Date(r.finished_at).toLocaleString() : "—"}</td>
+                  <td style={{ whiteSpace: "nowrap", fontSize: "0.75rem" }}>
+                    {new Date(r.started_at).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                  </td>
                   <td>
-                    <span
-                      className={
-                        r.status === "ok" ? "pill ok" : r.status === "error" || r.status === "partial" ? "pill warn" : "pill"
-                      }
-                    >
+                    <span className={r.status === "ok" ? "pill ok" : r.status === "error" || r.status === "partial" ? "pill warn" : "pill"}>
                       {r.status}
                     </span>
                   </td>
                   <td>{r.repo_count}</td>
                   <td>{r.commits_fetched}</td>
-                  <td className="cell-ellipsis" title={r.error_preview || undefined}>
+                  <td className="cell-ellipsis mobile-hide" title={r.error_preview || undefined}>
                     {r.error_preview || "—"}
                   </td>
                 </tr>
