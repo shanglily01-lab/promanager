@@ -308,23 +308,10 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion, team }: Pro
       <div className="page-header">
         <h2 className="page-title">同步</h2>
       </div>
-      <p className="card-hint mobile-hide" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
-        <strong>「导入到数据库」只保存仓库名单，不会拉取任何提交。</strong>
-        导入后必须再点<strong>「同步已配置的全部仓库」</strong>（或同步下方列表），才会写入提交记录。
-        <strong>GitHub</strong> 用 <code>GITHUB_TOKEN</code>（私有库建议配置）；<strong>AWS CodeCommit</strong> 用{" "}
-        <code>.env</code> 中的 <code>AWS_ACCESS_KEY_ID</code> 等，仓库写{" "}
-        <code>cc:区域/仓库名</code> 或 <code>cc:区域/仓库名@分支</code>。
-        也可配合 <code>DEFAULT_REPOS</code> / <code>REPOS_FILE</code>，<strong>合并去重</strong>。
-      </p>
-
       <h3 className="section-title">仓库列表</h3>
-      <p className="card-hint card-hint--tight mobile-hide">
-        每行一个：<code>owner/repo</code>、GitHub 链接，或 CodeCommit{" "}
-        <code>cc:ap-southeast-1/my-repo</code> / <code>cc:ap-southeast-1/my-repo@prod</code>。
-      </p>
       <div className="toolbar-row">
         <label className="toolbar-label">
-          CodeCommit 区域
+          CC 区域
           <input
             type="text"
             value={ccRegion}
@@ -340,14 +327,13 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion, team }: Pro
           disabled={ccListing}
           onClick={() => void fetchCodeCommitRepoList()}
         >
-          {ccListing ? "拉取中…" : "自动拉取该区域全部仓库"}
+          {ccListing ? "拉取中…" : "拉取 CodeCommit 仓库"}
         </button>
-        <span className="inline-hint">使用当前 AWS 凭证调用 ListRepositories（及 BatchGetRepositories 补全描述等，无权限时仅有名称）</span>
       </div>
       {ccCatalog && ccCatalog.repositories.length > 0 && (
         <div className="cc-catalog-panel">
           <div className="cc-catalog-title">
-            该区域最近一次列出：{ccCatalog.region} · {ccCatalog.repositories.length} 个（大小写与 AWS 一致，同步依赖此名称）
+            {ccCatalog.region} · {ccCatalog.repositories.length} 个
           </div>
           <div className="cc-catalog-scroll">
             <table className="cc-repo-table sync-table">
