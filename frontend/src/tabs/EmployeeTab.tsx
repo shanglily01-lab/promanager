@@ -132,13 +132,6 @@ export function EmployeeTab({ onError, team }: Props) {
     return Math.max(1, ...Object.values(empHabits.commits_by_hour_utc));
   }, [empHabits]);
 
-  /** 当前主键若与下拉选项中某项一致，则下拉显示该项；否则显示「按名称选择…」（手动输入任意主键时） */
-  const selectKeyValue = useMemo(() => {
-    const t = empLogin.trim();
-    if (!t) return "";
-    return employeeKeyOptions.some((o) => o.key === t) ? t : "";
-  }, [empLogin, employeeKeyOptions]);
-
   const trendIcon = (trend: string) => {
     if (trend === "up") return "↑";
     if (trend === "down") return "↓";
@@ -151,44 +144,23 @@ export function EmployeeTab({ onError, team }: Props) {
       <div className="page-header">
         <h2 className="page-title">员工分析</h2>
       </div>
-      <p className="card-hint mobile-hide" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
-        主键与日报一致。下方可先<strong>按成员昵称</strong>选择（实际仍使用内部主键查询）；也可在输入框中直接填写{" "}
-        <code>GitHub登录</code>、<code>email:邮箱</code>、<code>contrib:档案ID</code>、<code>_unknown</code>。
-      </p>
       <div className="row row--employee-filters">
         <label className="field-key">
-          报表主键
-          <div className="key-row">
-            <select
-              aria-label="按成员名称选择"
-              value={selectKeyValue}
-              onChange={(e) => {
-                const v = e.target.value;
-                setEmpLogin(v);
-              }}
-              className="select-key"
-            >
-              <option value="">按名称选择…</option>
-              {employeeKeyOptions.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <input
-              className="input-key"
-              value={empLogin}
-              onChange={(e) => setEmpLogin(e.target.value)}
-              placeholder="或输入主键，如 zhangsan / email:a@b.com"
-              list="employee-key-hints"
-            />
-          </div>
+          成员
+          <select
+            aria-label="按成员名称选择"
+            value={empLogin}
+            onChange={(e) => setEmpLogin(e.target.value)}
+            className="select-key"
+          >
+            <option value="">选择成员…</option>
+            {employeeKeyOptions.map((o) => (
+              <option key={o.key} value={o.key}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </label>
-        <datalist id="employee-key-hints">
-          {employeeKeyOptions.map((o) => (
-            <option key={o.key} value={o.key} label={o.label} />
-          ))}
-        </datalist>
         <label>
           从
           <DateInput value={empFrom} onChange={setEmpFrom} aria-label="提交区间开始日期" />
@@ -268,38 +240,20 @@ export function EmployeeTab({ onError, team }: Props) {
 
       {/* ── 习惯变化检测 ─────────────────────────────── */}
       <h2 className="subsection-title">习惯变化检测</h2>
-      <p className="card-hint mobile-hide">
-        以上方选择的日期范围为<strong>前期</strong>，再指定一个<strong>后期</strong>，对比两段时间的提交习惯变化。
-        成员主键默认使用上方已选主键，也可在此单独填写。
-      </p>
       <div className="hc-form">
         <label className="hc-key-label">
-          成员主键（可选，默认同上）
-          <div className="key-row">
-            <select
-              aria-label="按成员名称选择（习惯对比）"
-              value={employeeKeyOptions.some((o) => o.key === hcLogin) ? hcLogin : ""}
-              onChange={(e) => setHcLogin(e.target.value)}
-              className="select-key"
-            >
-              <option value="">按名称选择…</option>
-              {employeeKeyOptions.map((o) => (
-                <option key={o.key} value={o.key}>{o.label}</option>
-              ))}
-            </select>
-            <input
-              className="input-key"
-              value={hcLogin}
-              onChange={(e) => setHcLogin(e.target.value)}
-              placeholder={empLogin.trim() || "或输入主键"}
-              list="hc-key-hints"
-            />
-          </div>
-          <datalist id="hc-key-hints">
+          成员（可选，默认同上）
+          <select
+            aria-label="按成员名称选择（习惯对比）"
+            value={employeeKeyOptions.some((o) => o.key === hcLogin) ? hcLogin : ""}
+            onChange={(e) => setHcLogin(e.target.value)}
+            className="select-key"
+          >
+            <option value="">同上方选择</option>
             {employeeKeyOptions.map((o) => (
-              <option key={o.key} value={o.key} label={o.label} />
+              <option key={o.key} value={o.key}>{o.label}</option>
             ))}
-          </datalist>
+          </select>
         </label>
         <div className="hc-periods">
           <fieldset className="hc-period">

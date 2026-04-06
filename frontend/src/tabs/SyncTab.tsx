@@ -18,7 +18,7 @@ type Props = {
 };
 
 export function SyncTab({ onError, onHealthReload, awsDefaultRegion, team }: Props) {
-  const [reposInput, setReposInput] = useState("octocat/Hello-World");
+  const [reposInput, setReposInput] = useState("");
   const [sinceDays, setSinceDays] = useState(3);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
