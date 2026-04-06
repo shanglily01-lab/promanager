@@ -19,7 +19,7 @@ type Props = {
 
 export function SyncTab({ onError, onHealthReload, awsDefaultRegion, team }: Props) {
   const [reposInput, setReposInput] = useState("octocat/Hello-World");
-  const [sinceDays, setSinceDays] = useState(15);
+  const [sinceDays, setSinceDays] = useState(3);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncLines, setSyncLines] = useState<string[]>([]);
@@ -308,7 +308,7 @@ export function SyncTab({ onError, onHealthReload, awsDefaultRegion, team }: Pro
       <div className="page-header">
         <h2 className="page-title">同步</h2>
       </div>
-      <p className="card-hint" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
+      <p className="card-hint mobile-hide" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
         <strong>「导入到数据库」只保存仓库名单，不会拉取任何提交。</strong>
         导入后必须再点<strong>「同步已配置的全部仓库」</strong>（或同步下方列表），才会写入提交记录。
         <strong>GitHub</strong> 用 <code>GITHUB_TOKEN</code>（私有库建议配置）；<strong>AWS CodeCommit</strong> 用{" "}

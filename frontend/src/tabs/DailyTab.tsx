@@ -5,9 +5,9 @@ import { DateInput } from "../components/DateInput";
 import { RepoSourceBadge } from "../components/RepoSourceBadge";
 import { todayISO } from "../utils/date";
 
-type Props = { onError: (msg: string | null) => void; team: string };
+type Props = { onError: (msg: string | null) => void; team: string; hideHeader?: boolean };
 
-export function DailyTab({ onError, team }: Props) {
+export function DailyTab({ onError, team, hideHeader }: Props) {
   const [dailyDate, setDailyDate] = useState(todayISO);
   const [daily, setDaily] = useState<DailyReport | null>(null);
   const [dailyMd, setDailyMd] = useState<string | null>(null);
@@ -30,11 +30,11 @@ export function DailyTab({ onError, team }: Props) {
 
   return (
     <div>
-      <div className="page-header"><h2 className="page-title">日报</h2></div>
-      <p className="card-hint" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
+      {!hideHeader && <div className="page-header"><h2 className="page-title">日报</h2></div>}
+      <p className="card-hint mobile-hide" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
         日期为 <strong>UTC</strong> 的 0 点边界（与国内日历可能差一天）。需先在「同步」页拉取提交后，再点「生成」；不会自动刷新。
       </p>
-      <div className="row">
+      <div className="row" style={{ padding: "0 1rem" }}>
         <label>
           日期
           <DateInput value={dailyDate} onChange={setDailyDate} aria-label="日报日期" />

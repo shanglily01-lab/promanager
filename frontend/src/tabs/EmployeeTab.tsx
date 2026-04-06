@@ -151,7 +151,7 @@ export function EmployeeTab({ onError, team }: Props) {
       <div className="page-header">
         <h2 className="page-title">员工分析</h2>
       </div>
-      <p className="card-hint" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
+      <p className="card-hint mobile-hide" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
         主键与日报一致。下方可先<strong>按成员昵称</strong>选择（实际仍使用内部主键查询）；也可在输入框中直接填写{" "}
         <code>GitHub登录</code>、<code>email:邮箱</code>、<code>contrib:档案ID</code>、<code>_unknown</code>。
       </p>

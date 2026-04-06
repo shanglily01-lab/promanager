@@ -946,6 +946,119 @@ pre.md {
   .err { padding-left: 0.75rem; padding-right: 0.75rem; }
 }
 
+/* ── Sub-tabs (Reports tab) ──────────────────────────────── */
+.sub-tabs {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.sub-tabs button {
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.3rem 0.85rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.sub-tabs button.active {
+  background: var(--card);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ── Mobile layout fixes ─────────────────────────────────── */
+
+/* Hide verbose hint text on mobile */
+@media (max-width: 767px) {
+  .mobile-hide { display: none !important; }
+}
+
+/* Input: remove min-width on mobile so they don't overflow */
+@media (max-width: 767px) {
+  input, textarea, select {
+    min-width: 0 !important;
+  }
+
+  .input-region { width: 100%; }
+  .field-key { min-width: 0; }
+  .field-grow { min-width: 0; }
+  .select-key { min-width: 0; width: 100%; }
+
+  /* Row: stack vertically on narrow screens */
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* But keep label+button pairs horizontal */
+  .row--tight,
+  .row--actions,
+  .row--card-actions,
+  .row--mirror-actions {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Tables: always scroll, never overflow */
+  .mirror-table-wrap,
+  .sync-history-wrap,
+  .cc-catalog-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mirror-table,
+  .sync-history-table,
+  .sync-table {
+    min-width: 500px;
+  }
+
+  /* Card hint already hidden, remove padding gap */
+  .section-title { margin-top: 0.75rem; }
+
+  /* Key row: wrap better */
+  .key-row { flex-direction: column; }
+
+  /* HC periods: stack */
+  .hc-periods { flex-direction: column; }
+  .hc-period { min-width: 0; }
+
+  /* Bottom nav 5 items: make labels tiny */
+  .bottom-nav button {
+    font-size: 0.6rem;
+  }
+
+  .bottom-nav button svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Page header: compact */
+  .page-header {
+    padding: 0.65rem 0.75rem 0.4rem;
+  }
+
+  /* Date input: full width */
+  .date-input-wrap {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* inline-hint: hide on mobile */
+  .inline-hint { display: none; }
+}
+
 /* ── Scrollbar ───────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

@@ -6,10 +6,11 @@ import { ContributorsTab } from "./tabs/ContributorsTab";
 import { DailyTab } from "./tabs/DailyTab";
 import { EmployeeTab } from "./tabs/EmployeeTab";
 import { RepoMirrorsTab } from "./tabs/RepoMirrorsTab";
+import { ReportsTab } from "./tabs/ReportsTab";
 import { SyncTab } from "./tabs/SyncTab";
 import { WeeklyTab } from "./tabs/WeeklyTab";
 
-type TabId = "sync" | "mirrors" | "contributors" | "employee" | "daily" | "weekly";
+type TabId = "sync" | "mirrors" | "contributors" | "employee" | "daily" | "weekly" | "reports";
 type Team = "web3" | "game";
 
 const TEAMS: readonly { id: Team; label: string }[] = [
@@ -17,7 +18,7 @@ const TEAMS: readonly { id: Team; label: string }[] = [
   { id: "game", label: "游戏" },
 ] as const;
 
-// Bottom nav: 4 main tabs
+// Bottom nav: 5 main tabs
 const BOTTOM_TABS: readonly { id: TabId; label: string; icon: string }[] = [
   {
     id: "sync",
@@ -39,6 +40,11 @@ const BOTTOM_TABS: readonly { id: TabId; label: string; icon: string }[] = [
     label: "仓库",
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg>`,
   },
+  {
+    id: "reports",
+    label: "报告",
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>`,
+  },
 ] as const;
 
 // All tabs for desktop top nav
@@ -47,6 +53,7 @@ const ALL_TABS: readonly { id: TabId; label: string }[] = [
   { id: "mirrors",      label: "仓库中心" },
   { id: "contributors", label: "成员" },
   { id: "employee",     label: "分析" },
+  { id: "reports",      label: "报告" },
   { id: "daily",        label: "日报" },
   { id: "weekly",       label: "周报" },
 ] as const;
@@ -115,6 +122,7 @@ export default function App() {
         {tab === "mirrors"      ? <RepoMirrorsTab onError={setErr} team={team} /> : null}
         {tab === "contributors" ? <ContributorsTab onError={setErr} team={team} /> : null}
         {tab === "employee"     ? <EmployeeTab onError={setErr} team={team} /> : null}
+        {tab === "reports"      ? <ReportsTab onError={setErr} team={team} /> : null}
         {tab === "daily"        ? <DailyTab onError={setErr} team={team} /> : null}
         {tab === "weekly"       ? <WeeklyTab onError={setErr} team={team} /> : null}
       </div>

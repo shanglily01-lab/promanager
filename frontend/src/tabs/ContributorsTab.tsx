@@ -88,7 +88,7 @@ export function ContributorsTab({ onError, team }: Props) {
       <div className="page-header">
         <h2 className="page-title">成员档案</h2>
       </div>
-      <p className="card-hint" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
+      <p className="card-hint mobile-hide" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
         同一人可绑定多个邮箱与 GitHub 登录；同步后的提交会按<strong>邮箱优先</strong>匹配到档案，报表主键为{" "}
         <code>contrib:编号</code>。未建档案时，仍按 GitHub 登录或 <code>email:地址</code> 分桶。
       </p>

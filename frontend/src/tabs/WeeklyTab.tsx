@@ -5,9 +5,9 @@ import { DateInput } from "../components/DateInput";
 import { RepoSourceBadge } from "../components/RepoSourceBadge";
 import { mondayISO } from "../utils/date";
 
-type Props = { onError: (msg: string | null) => void; team: string };
+type Props = { onError: (msg: string | null) => void; team: string; hideHeader?: boolean };
 
-export function WeeklyTab({ onError, team }: Props) {
+export function WeeklyTab({ onError, team, hideHeader }: Props) {
   const [weekStart, setWeekStart] = useState(mondayISO);
   const [weekly, setWeekly] = useState<WeeklyReport | null>(null);
   const [weeklyMd, setWeeklyMd] = useState<string | null>(null);
@@ -30,9 +30,9 @@ export function WeeklyTab({ onError, team }: Props) {
 
   return (
     <div>
-      <div className="page-header"><h2 className="page-title">周报</h2></div>
-      <p className="card-hint" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>时间范围按 <strong>UTC</strong>；需先同步提交后再点「生成」。</p>
-      <div className="row">
+      {!hideHeader && <div className="page-header"><h2 className="page-title">周报</h2></div>}
+      <p className="card-hint mobile-hide" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>时间范围按 <strong>UTC</strong>；需先同步提交后再点「生成」。</p>
+      <div className="row" style={{ padding: "0 1rem" }}>
         <label>
           周起始（周一）
           <DateInput value={weekStart} onChange={setWeekStart} aria-label="周报周起始日（周一）" />
