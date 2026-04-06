@@ -31,9 +31,6 @@ export function DailyTab({ onError, team, hideHeader }: Props) {
   return (
     <div>
       {!hideHeader && <div className="page-header"><h2 className="page-title">日报</h2></div>}
-      <p className="card-hint mobile-hide" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>
-        日期为 <strong>UTC</strong> 的 0 点边界（与国内日历可能差一天）。需先在「同步」页拉取提交后，再点「生成」；不会自动刷新。
-      </p>
       <div className="row" style={{ padding: "0 1rem" }}>
         <label>
           日期

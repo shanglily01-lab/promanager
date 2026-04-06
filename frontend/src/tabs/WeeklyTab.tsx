@@ -31,7 +31,6 @@ export function WeeklyTab({ onError, team, hideHeader }: Props) {
   return (
     <div>
       {!hideHeader && <div className="page-header"><h2 className="page-title">周报</h2></div>}
-      <p className="card-hint mobile-hide" style={{ padding: "0 1rem", marginBottom: "0.75rem" }}>时间范围按 <strong>UTC</strong>；需先同步提交后再点「生成」。</p>
       <div className="row" style={{ padding: "0 1rem" }}>
         <label>
           周起始（周一）
