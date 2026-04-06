@@ -59,7 +59,9 @@ def get_db(request: Request):
 
 
 def _mysql_convert_tables_utf8mb4() -> None:
-    """已有表若为 latin1/utf8(3字节)，写入中文会 1366；启动时尝试改为 utf8mb4。"""
+    """已有表若为 latin1/utf8(3字节)，写入中文会 1366；启动时检查并改为 utf8mb4。
+    已经是 utf8mb4 的表跳过，避免每次启动重建整张表导致锁等待。
+    """
     if engine.dialect.name != "mysql":
         return
     names = (
@@ -70,14 +72,27 @@ def _mysql_convert_tables_utf8mb4() -> None:
         "sync_logs",
         "repo_mirror_states",
     )
-    with engine.begin() as conn:
+    with engine.connect() as conn:
         for t in names:
             try:
+                row = conn.execute(
+                    text(
+                        "SELECT CCSA.character_set_name "
+                        "FROM information_schema.tables T "
+                        "JOIN information_schema.collation_character_set_applicability CCSA "
+                        "  ON CCSA.collation_name = T.table_collation "
+                        "WHERE T.table_schema = DATABASE() AND T.table_name = :t"
+                    ),
+                    {"t": t},
+                ).fetchone()
+                if row and row[0] == "utf8mb4":
+                    continue  # 已经是 utf8mb4，跳过
                 conn.execute(
                     text(
                         f"ALTER TABLE `{t}` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
                     )
                 )
+                conn.commit()
             except Exception as e:  # noqa: BLE001
                 logging.warning("MySQL 表 %s 转为 utf8mb4 跳过或失败: %s", t, e)
 
